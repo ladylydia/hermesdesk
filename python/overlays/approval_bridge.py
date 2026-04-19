@@ -1,14 +1,15 @@
 """Route Hermes' shell-command approval to a Tauri-native modal.
 
-Hermes already has an approval system in `tools/approval.py` that gates
-shell commands behind a yes/no prompt printed to the terminal. In a
-desktop app there is no terminal — we need a real Windows dialog.
+Hermes' approval system lives in ``tools/approval.py``. The CLI flow
+prints a yes/no prompt to stdout and reads ``input()`` (see
+``prompt_dangerous_approval`` in upstream). In a desktop app there is
+no terminal, so we replace that function with one that POSTs the
+request to the Tauri shell over loopback and blocks until the user
+clicks Allow / Deny in a native Tauri WebView dialog.
 
-We replace the approval prompt function with one that POSTs the request
-to the Tauri shell over loopback and blocks until the user clicks
-Allow / Deny in a native Tauri WebView dialog.
-
-Default policy: deny. No "always allow" persistence.
+Default policy: deny. No "always allow" persistence in v1 — the user
+must re-confirm every dangerous command. This is intentionally more
+strict than upstream because most HermesDesk users are non-technical.
 """
 
 from __future__ import annotations
@@ -23,17 +24,21 @@ from typing import Any
 log = logging.getLogger("hermesdesk.approval")
 
 
-def _ask_tauri(command: str, cwd: str, reason: str) -> bool:
+def _ask_tauri(command: str, description: str) -> str:
+    """Return one of: 'once', 'session', 'always', 'deny'.
+
+    HermesDesk maps Tauri's two-choice dialog (Allow / Deny) onto
+    `'once'` and `'deny'`. We never auto-promote to session/always; the
+    user must explicitly re-confirm every dangerous command.
+    """
     url = os.environ.get("HERMESDESK_APPROVAL_URL")
     if not url:
-        # No bridge configured -> default-deny.
         log.warning("no HERMESDESK_APPROVAL_URL; denying command %r", command)
-        return False
+        return "deny"
 
     payload = json.dumps({
         "command": command,
-        "cwd": cwd,
-        "reason": reason,
+        "description": description,
     }).encode("utf-8")
 
     req = urllib.request.Request(
@@ -44,41 +49,40 @@ def _ask_tauri(command: str, cwd: str, reason: str) -> bool:
     try:
         with urllib.request.urlopen(req, timeout=600) as resp:  # nosec - loopback
             body = json.loads(resp.read())
-            return bool(body.get("allowed"))
+            return "once" if bool(body.get("allowed")) else "deny"
     except urllib.error.URLError:
         log.exception("approval bridge unreachable; denying")
-        return False
+        return "deny"
     except Exception:
         log.exception("approval bridge error; denying")
-        return False
+        return "deny"
 
 
 def install() -> None:
-    # tools/approval.py is only loaded if a power-user shell tool is enabled.
-    # We patch lazily so the import doesn't fail when the module isn't shipped.
     try:
         from tools import approval  # type: ignore
     except ImportError:
         log.debug("tools.approval not present (no power-user tools); skip")
         return
 
-    # Replace whatever interactive prompt function approval.py exposes.
-    # Upstream API surface as of v0.10.0 includes `prompt_user_for_command(...)`.
-    target_names = (
-        "prompt_user_for_command",
-        "ask_user",
-        "interactive_approval",
-    )
+    target_name = "prompt_dangerous_approval"
+    if not hasattr(approval, target_name):
+        log.warning(
+            "tools.approval.%s missing; upstream API may have changed. "
+            "HermesDesk will fall back to upstream prompt (which will hang "
+            "in a desktop context — please file a bug).",
+            target_name,
+        )
+        return
 
-    def desktop_prompt(command: str, cwd: str = ".", reason: str = "", **_: Any) -> bool:
-        return _ask_tauri(command, cwd, reason)
+    def desktop_prompt(
+        command: str,
+        description: str,
+        timeout_seconds: int | None = None,  # noqa: ARG001 - kept for signature compat
+        allow_permanent: bool = True,        # noqa: ARG001
+        approval_callback: Any = None,       # noqa: ARG001
+    ) -> str:
+        return _ask_tauri(command, description)
 
-    patched = False
-    for name in target_names:
-        if hasattr(approval, name):
-            setattr(approval, name, desktop_prompt)
-            patched = True
-    if not patched:
-        log.warning("approval module had no known prompt fn; commands will use upstream default")
-    else:
-        log.info("approval bridge installed -> Tauri modal")
+    setattr(approval, target_name, desktop_prompt)
+    log.info("approval bridge installed -> Tauri modal")

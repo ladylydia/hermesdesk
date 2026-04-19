@@ -182,7 +182,9 @@ if ($Verify) {
     $env:HERMESDESK_BUNDLE_DIR = $Dist
     $env:HERMESDESK_DATA_DIR   = (Join-Path $env:TEMP "hermesdesk-smoke")
     $env:HERMESDESK_WORKSPACE  = (Join-Path $env:TEMP "hermesdesk-smoke\workspace")
+    $env:HERMES_HOME           = (Join-Path $env:TEMP "hermesdesk-smoke\hermes-home")
     $env:HERMESDESK_OVERLAY_LENIENT = "1"
+    New-Item -ItemType Directory -Force -Path $env:HERMESDESK_WORKSPACE, $env:HERMES_HOME | Out-Null
     & $Py -c @"
 import sys
 sys.path.insert(0, r'$Dist')

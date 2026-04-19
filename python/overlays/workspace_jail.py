@@ -163,6 +163,13 @@ def install() -> None:
     if data_env:
         extra_write.append(Path(data_env))
 
+    # Hermes' own config/cache root (set by desktop_entrypoint to a path
+    # inside HERMESDESK_DATA_DIR). Without this Hermes can't persist its
+    # config.yaml, sessions, or permanent allowlist.
+    hermes_home = os.environ.get("HERMES_HOME")
+    if hermes_home:
+        extra_write.append(Path(hermes_home))
+
     # Allow reading/writing in temp; many libs (httpx caches, fal-client) need it
     extra_write.append(Path(os.environ.get("TEMP", os.environ.get("TMP", "C:/Windows/Temp"))))
 

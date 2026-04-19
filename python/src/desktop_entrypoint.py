@@ -61,16 +61,40 @@ def _write_handshake(port: int) -> None:
     Path(path).write_text(str(port), encoding="utf-8")
 
 
+def _redirect_hermes_home() -> Path:
+    """Force Hermes' config/cache root inside the per-user data dir.
+
+    Hermes defaults to ``~/.hermes`` for ``HERMES_HOME`` (see
+    ``hermes_constants.get_hermes_home``). On HermesDesk we don't want
+    Hermes to write to the user's profile root; we want everything in
+    ``%LOCALAPPDATA%\\HermesDesk\\hermes-home`` so:
+
+      * uninstall is clean (one folder to delete),
+      * the workspace jail can keep ``~/`` opaque,
+      * profile separation per Windows user is automatic.
+
+    Set the env var BEFORE overlays import anything that touches
+    ``hermes_constants`` or ``hermes_cli.config``.
+    """
+    data_dir = Path(os.environ.get("HERMESDESK_DATA_DIR", "."))
+    home = data_dir / "hermes-home"
+    home.mkdir(parents=True, exist_ok=True)
+    os.environ["HERMES_HOME"] = str(home)
+    return home
+
+
 def main() -> int:
     _setup_logging()
     log = logging.getLogger("hermesdesk.entry")
     log.info("starting HermesDesk Python (pid=%d)", os.getpid())
 
+    hermes_home = _redirect_hermes_home()
+    log.info("HERMES_HOME -> %s", hermes_home)
+
     # 1. Overlays first.
     try:
         from overlays import apply_all
     except ImportError:
-        # When run from source layout
         sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
         from overlays import apply_all  # type: ignore[no-redef]
     apply_all()
