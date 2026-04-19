@@ -139,6 +139,27 @@ foreach ($d in $drop) {
     if (Test-Path $f) { Remove-Item -Force -Recurse $f }
 }
 
+# ------------------------------------------------------------------ 4b. Build Hermes' SPA (web/ -> hermes_cli/web_dist)
+# `hermes_cli/web_server.py` expects the built SPA at
+# `<package>/web_dist/`. Without this, every HTTP path returns
+# {"error":"Frontend not built. Run: cd web && npm run build"}.
+$hermesWeb     = Join-Path $HermesDir "..\web" | Resolve-Path | Select-Object -ExpandProperty Path
+$hermesWebDist = Join-Path $HermesDir "web_dist"
+if (-not (Test-Path (Join-Path $hermesWebDist "index.html"))) {
+    if (-not (Test-Path (Join-Path $hermesWeb "node_modules"))) {
+        Write-Host "  npm install (hermes/web)..." -ForegroundColor DarkGray
+        Push-Location $hermesWeb
+        try { npm install --no-audit --no-fund 2>&1 | Out-Null } finally { Pop-Location }
+    }
+    Write-Host "  npm run build (hermes/web)..." -ForegroundColor DarkGray
+    Push-Location $hermesWeb
+    try { npm run build 2>&1 | Out-Null } finally { Pop-Location }
+}
+if (-not (Test-Path (Join-Path $hermesWebDist "index.html"))) {
+    throw "Hermes SPA build failed: $hermesWebDist\index.html not found"
+}
+Copy-Item -Recurse -Force $hermesWebDist (Join-Path $bundledHermes "hermes_cli\web_dist")
+
 # ------------------------------------------------------------------ 5. Install deps into a target dir (no venv)
 $siteDir = Join-Path $Dist "site-packages"
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $siteDir
