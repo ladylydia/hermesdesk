@@ -1,7 +1,11 @@
 # Rust / Tauri
 /tauri/target/
 /tauri/Cargo.lock
+/tauri/gen/
 **/*.rs.bk
+
+# Dev-time logs at repo root
+/.tauri-dev.log
 
 # Node / web
 node_modules/
