@@ -42,6 +42,7 @@ _PROVIDER_ENV = {
 def install() -> None:
     url = os.environ.pop("HERMESDESK_SECRET_URL", None)
     provider = os.environ.get("HERMESDESK_PROVIDER", "").lower()
+    log.info("secret_loader: url=%r provider=%r", url, provider)
     if not url or not provider:
         log.info("no secret handshake URL; assuming dev mode (env-provided keys)")
         return
@@ -53,16 +54,29 @@ def install() -> None:
 
     # IMPORTANT: this fetch happens BEFORE network_allowlist installs, so
     # we use stdlib urllib (no httpx wrapping yet). Loopback only.
+    #
+    # We MUST bypass any system proxy (HTTP_PROXY / HTTPS_PROXY / WPAD).
+    # Otherwise on machines with a VPN / Clash / SS-style proxy active,
+    # urllib happily routes our `http://127.0.0.1:PORT/...` request to
+    # the proxy, which has no idea what to do with loopback and hangs.
+    # `ProxyHandler({})` installs an opener with an empty proxy table,
+    # which `urlopen` then uses verbatim.
     try:
         import urllib.request
-        with urllib.request.urlopen(url, timeout=5) as resp:  # nosec - loopback
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=5) as resp:  # nosec - loopback
             secret = resp.read().decode("utf-8").strip()
     except Exception:
         log.exception("failed to fetch secret from Tauri")
         raise SystemExit(2)
 
     if not secret:
-        raise SystemExit("HermesDesk: empty secret returned by Tauri")
+        # First launch / user hasn't completed onboarding yet. Don't crash —
+        # let the web UI come up so the onboarding wizard can collect the
+        # key and call cmd_save_secret. Hermes will refuse to make LLM calls
+        # without a key, which the UI surfaces as a friendly prompt.
+        log.info("no secret yet (provider=%s); awaiting onboarding wizard", provider)
+        return
 
     os.environ[env_name] = secret
     log.info("secret loaded into %s (provider=%s)", env_name, provider)

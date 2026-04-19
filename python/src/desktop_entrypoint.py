@@ -83,11 +83,42 @@ def _redirect_hermes_home() -> Path:
     return home
 
 
+def _wire_sys_path() -> None:
+    """Make `overlays/`, `hermes/`, and `site-packages/` importable.
+
+    The bundled layout under ``HERMESDESK_BUNDLE_DIR`` is::
+
+        runtime/
+            desktop_entrypoint.py     <- this file
+            overlays/                 <- our monkey patches
+            hermes/                   <- upstream Hermes Agent (cloned subtree)
+                hermes_cli/
+                agent/
+                tools/
+                ...
+            site-packages/            <- pip-installed deps (httpx, fastapi, ...)
+            python/                   <- embedded CPython
+
+    Python auto-adds the script's directory (``runtime/``) to ``sys.path[0]``
+    when launched as ``python.exe runtime\\desktop_entrypoint.py``, which
+    makes ``overlays`` importable. ``hermes/`` and ``site-packages/`` need
+    to be added manually — the build does ship a ``.pth`` shim, but the
+    relative paths in it are fragile across dev vs bundled layouts. Doing
+    it here makes the launcher self-contained.
+    """
+    here = Path(__file__).resolve().parent
+    for sub in ("hermes", "site-packages"):
+        p = here / sub
+        if p.is_dir():
+            sys.path.insert(0, str(p))
+
+
 def main() -> int:
     _setup_logging()
     log = logging.getLogger("hermesdesk.entry")
     log.info("starting HermesDesk Python (pid=%d)", os.getpid())
 
+    _wire_sys_path()
     hermes_home = _redirect_hermes_home()
     log.info("HERMES_HOME -> %s", hermes_home)
 
@@ -95,7 +126,7 @@ def main() -> int:
     try:
         from overlays import apply_all
     except ImportError:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
         from overlays import apply_all  # type: ignore[no-redef]
     apply_all()
 
@@ -114,22 +145,37 @@ def main() -> int:
         log.exception("failed to import hermes_cli.web_server; aborting")
         return 3
 
-    runner = getattr(web_server, "run", None) or getattr(web_server, "main", None)
+    # Upstream API (hermes >= 0.10): hermes_cli.web_server.start_server(host, port, ...)
+    runner = (
+        getattr(web_server, "start_server", None)
+        or getattr(web_server, "run", None)
+        or getattr(web_server, "main", None)
+    )
     if runner is None:
-        log.error("no run()/main() entry in hermes_cli.web_server; check upstream")
+        log.error(
+            "no start_server()/run()/main() entry in hermes_cli.web_server; "
+            "upstream API may have changed"
+        )
         return 4
 
     try:
-        # Best-effort kw-style; fall back to argv-style.
-        try:
-            return int(runner(host="127.0.0.1", port=port) or 0)
-        except TypeError:
-            old_argv = sys.argv[:]
-            sys.argv = ["hermes-web", "--host", "127.0.0.1", "--port", str(port)]
+        # Try a few common signatures so we tolerate small upstream churn.
+        for attempt in (
+            lambda: runner(host="127.0.0.1", port=port),
+            lambda: runner("127.0.0.1", port),
+            lambda: runner(port=port),
+        ):
             try:
-                return int(runner() or 0)
-            finally:
-                sys.argv = old_argv
+                return int(attempt() or 0)
+            except TypeError:
+                continue
+        # Last resort: argv-style.
+        old_argv = sys.argv[:]
+        sys.argv = ["hermes-web", "--host", "127.0.0.1", "--port", str(port)]
+        try:
+            return int(runner() or 0)
+        finally:
+            sys.argv = old_argv
     except KeyboardInterrupt:
         log.info("interrupt received; shutting down")
         return 0

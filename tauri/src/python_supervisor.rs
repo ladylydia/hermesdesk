@@ -55,14 +55,27 @@ impl Supervisor {
             .env_remove("OPENAI_API_KEY")
             .env_remove("ANTHROPIC_API_KEY")
             .env_remove("OPENROUTER_API_KEY")
+            // CRITICAL: strip every proxy var the user's shell may have set.
+            // Otherwise Python's urllib / httpx will route our loopback
+            // bridge call (http://127.0.0.1:PORT/...) through the user's
+            // VPN / Clash / SS proxy, which has no idea how to handle
+            // loopback and silently hangs. The Hermes child should never
+            // need an HTTP proxy: it talks to the LLM provider directly,
+            // and the user's VPN sees that traffic at the system level.
+            .env_remove("HTTP_PROXY").env_remove("http_proxy")
+            .env_remove("HTTPS_PROXY").env_remove("https_proxy")
+            .env_remove("ALL_PROXY").env_remove("all_proxy")
+            .env_remove("NO_PROXY").env_remove("no_proxy")
+            .env("NO_PROXY", "127.0.0.1,localhost,::1")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
 
         // Hide the console window on Windows.
+        // tokio::process::Command exposes `creation_flags` directly on Windows
+        // (no need to import std::os::windows::process::CommandExt).
         #[cfg(windows)]
         {
-            use std::os::windows::process::CommandExt;
             const CREATE_NO_WINDOW: u32 = 0x0800_0000;
             cmd.creation_flags(CREATE_NO_WINDOW);
         }
@@ -82,7 +95,9 @@ impl Supervisor {
     pub async fn wait_for_port(&self) -> Result<u16> {
         let deadline = std::time::Instant::now() + Duration::from_secs(30);
         loop {
-            if let Ok(s) = std::fs::read_to_string(&self.port_file) {
+            // Use async fs so we don't starve other tasks (e.g. the bridge
+            // serve loop) on Tauri's single-threaded runtime.
+            if let Ok(s) = tokio::fs::read_to_string(&self.port_file).await {
                 if let Ok(p) = s.trim().parse::<u16>() {
                     return Ok(p);
                 }
