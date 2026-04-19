@@ -72,6 +72,14 @@ cd tauri; cargo tauri dev
 
 To produce the signed installer, see [docs/code-signing.md](docs/code-signing.md).
 
+If something doesn't work — especially first-launch hangs, blank window,
+or `bridge accepted` never appearing in logs — read
+[docs/troubleshooting.md](docs/troubleshooting.md) **first**. It covers
+every non-obvious failure mode we hit while bringing this up on Windows
+(VPN/proxy interception of loopback, Tauri single-thread runtime
+starvation, upstream API drift, etc.) with the exact symptom → cause →
+fix mapping.
+
 ## Layout
 
 ```
