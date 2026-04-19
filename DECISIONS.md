@@ -60,7 +60,7 @@ behind the "Power user" toggle, off by default.
 | `tools/tts_tool.py` (Edge TTS only)      | Free text-to-speech, no API key           |
 | `tools/transcription_tools.py`           | Voice memo transcription                  |
 | `tools/memory_tool.py`                   | Persistent memory                         |
-| `tools/skills_tool.py`                   | Skills system (core differentiator)       |
+| `tools/skills_tool.py`                   | Skills system (core differentiator) — see [docs/skills-design-decision.md](docs/skills-design-decision.md) for tiering model |
 | `tools/todo_tool.py`                     | Lightweight todo list                     |
 | `tools/vision_tools.py`                  | Image understanding                       |
 | `tools/clarify_tool.py`                  | Ask clarifying questions                  |
@@ -112,6 +112,16 @@ See [docs/safety.md](docs/safety.md). Highlights:
   Edge TTS).
 - Telemetry: **off by default**, opt-in only, anonymized.
 
+## Skills exposure model
+
+Replaces the original "Skills hidden behind Power-user toggle" plan.
+Skills are tiered by *action* (use / install / author), not by user.
+Default users get a curated set of built-in "Quick Actions" surfaced
+on the chat screen; advanced mode unlocks an officially signed Skill
+market; power-user mode unlocks unsigned third-party install and a
+YAML editor. Full reasoning, security model, and implementation plan
+in [docs/skills-design-decision.md](docs/skills-design-decision.md).
+
 ## Out of scope for v1
 
 - Linux / macOS builds
@@ -119,5 +129,6 @@ See [docs/safety.md](docs/safety.md). Highlights:
 - Multi-user / per-machine install
 - Hosted backend
 - Mobile (Telegram bridge etc.)
-- Plugin marketplace UI
+- Third-party (unsigned) Skill marketplace — v1.0 ships only built-in
+  Recipes; signed market is v1.1, unsigned third-party is v1.2
 - Voice-first / always-listening mode (push-to-talk only)
