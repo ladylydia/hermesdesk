@@ -1,0 +1,41 @@
+# Rust / Tauri
+/tauri/target/
+/tauri/Cargo.lock
+**/*.rs.bk
+
+# Node / web
+node_modules/
+/web/dist/
+/web/.vite/
+/web/build/
+*.log
+
+# Python bundle artifacts (built, never committed)
+/python/dist/
+/python/_build/
+/python/_download/
+/python/_venv/
+*.pyc
+__pycache__/
+
+# Installer outputs
+/installer/dist/
+*.msi
+*.exe
+
+# Secrets (must never be checked in)
+*.pem
+*.pfx
+*.key
+.env
+.env.local
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build report files
+audit-output.json
+windows-port-report.txt

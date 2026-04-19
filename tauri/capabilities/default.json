@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schema.tauri.app/config/2/capabilities",
+  "identifier": "default",
+  "description": "Capabilities for the main window",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-set-focus",
+    "core:event:default",
+    "core:tray:default",
+    "core:menu:default",
+    "shell:allow-open",
+    "dialog:default",
+    "opener:default",
+    "opener:allow-open-url",
+    "keyring:default",
+    "updater:default",
+    "os:default",
+    "fs:default",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        { "path": "$DOCUMENT/HermesWork/**" },
+        { "path": "$LOCALDATA/HermesDesk/**" }
+      ]
+    }
+  ]
+}

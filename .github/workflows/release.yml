@@ -1,0 +1,70 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - uses: dtolnay/rust-toolchain@stable
+        with: { targets: x86_64-pc-windows-msvc }
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: tauri
+
+      - name: Build Python bundle
+        shell: pwsh
+        run: ./python/build_bundle.ps1 -Verify
+
+      - name: Install web deps
+        working-directory: web
+        run: npm ci
+
+      - name: Decode signing cert
+        if: ${{ secrets.WIN_PFX_BASE64 != '' }}
+        shell: pwsh
+        env:
+          PFX: ${{ secrets.WIN_PFX_BASE64 }}
+        run: |
+          [IO.File]::WriteAllBytes("$env:RUNNER_TEMP\cert.pfx",
+            [Convert]::FromBase64String("$env:PFX"))
+          $thumb = (certutil -dump "$env:RUNNER_TEMP\cert.pfx" |
+            Select-String -Pattern "Cert Hash\(sha1\):").Line.Split(":")[1].Trim()
+          "WIN_CERT_THUMBPRINT=$thumb" >> $env:GITHUB_ENV
+
+      - name: Build signed MSI
+        working-directory: tauri
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_UPDATER_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_UPDATER_PRIVATE_KEY_PASSWORD }}
+        run: |
+          cargo install tauri-cli --version "^2" --locked
+          cargo tauri build
+
+      - name: Generate updater manifest (latest.json)
+        shell: pwsh
+        run: ./scripts/make_updater_manifest.ps1 -Version "${{ github.ref_name }}"
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            tauri/target/release/bundle/msi/*.msi
+            tauri/target/release/bundle/msi/*.msi.sig
+            latest.json

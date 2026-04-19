@@ -1,0 +1,87 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "HermesDesk",
+  "version": "0.1.0",
+  "identifier": "com.hermesdesk.app",
+  "build": {
+    "frontendDist": "../web/dist",
+    "devUrl": "http://localhost:5173",
+    "beforeDevCommand": "npm --prefix ../web run dev",
+    "beforeBuildCommand": "npm --prefix ../web ci && npm --prefix ../web run build"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "HermesDesk",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 720,
+        "minHeight": 520,
+        "decorations": true,
+        "center": true,
+        "resizable": true,
+        "visible": false,
+        "fileDropEnabled": true,
+        "url": "index.html"
+      }
+    ],
+    "trayIcon": {
+      "iconPath": "icons/tray.png",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false,
+      "tooltip": "HermesDesk"
+    },
+    "security": {
+      "csp": "default-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: data: blob: http://127.0.0.1:* https:; connect-src ipc: http://ipc.localhost http://127.0.0.1:* ws://127.0.0.1:* https://api.openrouter.ai https://openrouter.ai; style-src 'self' 'unsafe-inline'; script-src 'self'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": [
+          "$APPDATA/HermesDesk/**",
+          "$LOCALDATA/HermesDesk/**"
+        ]
+      }
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi"],
+    "publisher": "HermesDesk Contributors",
+    "category": "Productivity",
+    "shortDescription": "Friendly AI helper for your PC",
+    "longDescription": "HermesDesk is a safe, easy-to-use AI assistant for Windows powered by the open-source Hermes Agent.",
+    "copyright": "MIT licensed; see LICENSE",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../python/dist/runtime": "runtime"
+    },
+    "windows": {
+      "webviewInstallMode": {
+        "type": "embedBootstrapper"
+      },
+      "wix": {
+        "language": ["en-US"],
+        "template": "../installer/wix/main.wxs"
+      },
+      "allowDowngrades": false,
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.sectigo.com"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/your-org/hermesdesk/releases/latest/download/latest.json"
+      ],
+      "dialog": false,
+      "pubkey": "REPLACE_WITH_TAURI_GENERATED_PUBKEY"
+    }
+  }
+}
