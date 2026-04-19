@@ -6,8 +6,14 @@
   "build": {
     "frontendDist": "../web/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm --prefix ../web run dev",
-    "beforeBuildCommand": "npm --prefix ../web ci && npm --prefix ../web run build"
+    "beforeDevCommand": {
+      "cwd": "../web",
+      "script": "npm run dev"
+    },
+    "beforeBuildCommand": {
+      "cwd": "../web",
+      "script": "npm ci && npm run build"
+    }
   },
   "app": {
     "windows": [
@@ -22,7 +28,7 @@
         "center": true,
         "resizable": true,
         "visible": false,
-        "fileDropEnabled": true,
+        "dragDropEnabled": true,
         "url": "index.html"
       }
     ],

@@ -16,7 +16,6 @@
     "dialog:default",
     "opener:default",
     "opener:allow-open-url",
-    "keyring:default",
     "updater:default",
     "os:default",
     "fs:default",

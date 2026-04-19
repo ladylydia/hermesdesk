@@ -78,7 +78,8 @@ pub fn run() {
         .run(|app, event| {
             if let RunEvent::ExitRequested { .. } = &event {
                 let state: tauri::State<AppState> = app.state();
-                if let Ok(mut sup) = state.supervisor.try_lock() {
+                let lock_result = state.supervisor.try_lock();
+                if let Ok(mut sup) = lock_result {
                     if let Some(s) = sup.take() {
                         let _ = s.shutdown();
                     }
