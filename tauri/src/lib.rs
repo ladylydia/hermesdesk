@@ -61,6 +61,8 @@ pub fn run() {
             paths::cmd_open_workspace,
             paths::cmd_get_power_user,
             paths::cmd_set_power_user,
+            paths::cmd_get_show_recipe_market,
+            paths::cmd_set_show_recipe_market,
             paths::cmd_set_personality,
         ])
         .setup(|app| {
@@ -93,6 +95,7 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
     let workspace = paths::ensure_workspace(&app)?;
     let bundle_dir = paths::resolve_runtime_dir(&app)?;
     let data_dir = paths::ensure_data_dir(&app)?;
+    paths::sync_show_recipe_market_flag(&app)?;
 
     // 2. Stand up the loopback bridge (secret handshake + shell approval).
     let bridge = bridge::spawn(app.clone()).await?;
@@ -102,6 +105,7 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
     }
 
     // 3. Spawn the Python child.
+    let llm = secrets::resolve_llm_spawn_params(&app);
     let supervisor = python_supervisor::Supervisor::spawn(
         python_supervisor::SpawnConfig {
             bundle_dir,
@@ -109,8 +113,11 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
             workspace,
             secret_url: bridge.secret_url.clone(),
             approval_url: bridge.approval_url.clone(),
-            provider: secrets::current_provider(&app).unwrap_or_else(|| "openrouter".into()),
-            llm_host: secrets::current_host(&app).unwrap_or_else(|| "openrouter.ai".into()),
+            provider: llm.provider,
+            llm_host: llm.llm_host,
+            api_base_url: llm.api_base_url,
+            hermes_model: llm.hermes_model,
+            inference_provider: llm.inference_provider,
             power_user: paths::is_power_user(&app),
         },
     )

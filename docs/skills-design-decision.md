@@ -254,9 +254,8 @@ the prerequisite CLIs installed. They are not appropriate as
 * [`docs/onboarding.md`](onboarding.md) — needs an update to describe
   Quick Actions on the chat screen and the "Show recipe market"
   Settings toggle.
-* [`docs/skills-security.md`](skills-security.md) — to be written;
-  expands the "Security model" section above into the formal trust
-  story we publish for Skill authors.
+* [`docs/skills-security.md`](skills-security.md) — trust model for L1
+  `run_builtin_helper`, L2/L3 roadmap pointers, and reporting.
 * [`DECISIONS.md`](../DECISIONS.md) — top-level decision summary;
   amended to point here and to flip the Skills row from "hidden" to
   "tiered".

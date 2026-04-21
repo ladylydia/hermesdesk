@@ -14,7 +14,8 @@ export type ProviderId =
   | "anthropic"
   | "nous"
   | "groq"
-  | "mistral";
+  | "mistral"
+  | "custom";
 
 export interface Provider {
   id: ProviderId;
@@ -91,6 +92,16 @@ export const PROVIDERS: Provider[] = [
     validateUrl: "https://api.mistral.ai/v1/models",
     validateAuth: (k) => `Bearer ${k}`,
     blurb: "Mistral's hosted models.",
+    freeTier: false,
+  },
+  {
+    id: "custom",
+    label: "Your own API",
+    host: "",
+    signupUrl: "",
+    validateUrl: "",
+    validateAuth: (k) => `Bearer ${k}`,
+    blurb: "Any OpenAI-compatible endpoint you choose (base URL + access pass).",
     freeTier: false,
   },
 ];

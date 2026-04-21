@@ -15,8 +15,11 @@ Tauri sets these env vars before spawn:
     HERMESDESK_DATA_DIR      per-user state (writable)
     HERMESDESK_WORKSPACE     workspace folder
     HERMESDESK_PORT_FILE     path where we write the chosen port
-    HERMESDESK_PROVIDER      e.g. "openrouter"
-    HERMESDESK_LLM_HOST      e.g. "openrouter.ai" (allowlist hint)
+    HERMESDESK_PROVIDER      e.g. "openrouter" or "custom"
+    HERMESDESK_LLM_HOST      LLM hostname for the network allowlist
+    HERMESDESK_API_BASE_URL  optional OpenAI-compatible base URL (custom vendor)
+    HERMESDESK_MODEL         optional default model id (Hermes config seed)
+    HERMESDESK_INFERENCE_PROVIDER  optional Hermes routing hint (e.g. "custom")
     HERMESDESK_SECRET_URL    one-shot loopback URL to fetch the API key
     HERMESDESK_APPROVAL_URL  loopback URL the approval bridge POSTs to
     HERMESDESK_POWER_USER    "1" enables shell/code/browser/mcp tools
@@ -111,6 +114,9 @@ def _wire_sys_path() -> None:
         p = here / sub
         if p.is_dir():
             sys.path.insert(0, str(p))
+    # Package ``helpers`` lives at ``runtime/helpers/``; parent must be on path.
+    if (here / "helpers").is_dir():
+        sys.path.insert(0, str(here))
 
 
 def main() -> int:

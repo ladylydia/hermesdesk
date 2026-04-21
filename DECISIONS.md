@@ -61,9 +61,12 @@ behind the "Power user" toggle, off by default.
 | `tools/transcription_tools.py`           | Voice memo transcription                  |
 | `tools/memory_tool.py`                   | Persistent memory                         |
 | `tools/skills_tool.py`                   | Skills system (core differentiator) — see [docs/skills-design-decision.md](docs/skills-design-decision.md) for tiering model |
+| `run_builtin_helper` (HermesDesk overlay) | L1 only: whitelist dispatch to bundled `python/helpers/*` — see [docs/skills-security.md](docs/skills-security.md); **not** generic `code_execution` |
 | `tools/todo_tool.py`                     | Lightweight todo list                     |
 | `tools/vision_tools.py`                  | Image understanding                       |
 | `tools/clarify_tool.py`                  | Ask clarifying questions                  |
+
+**HermesDesk Skills — recipe market strip (v1):** Off by default. The shell **Settings** app stores `hermesdesk.show_recipe_market` and mirrors it to `hermesdesk_show_recipe_market.txt` under `%LOCALAPPDATA%\HermesDesk\` so the embedded web `/api/status` and **Skills** page can show a **UI-only** placeholder banner without restarting Python. No remote catalog in v1.
 
 **Hidden behind "Power user" toggle (off by default):**
 

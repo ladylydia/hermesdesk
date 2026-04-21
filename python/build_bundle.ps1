@@ -143,8 +143,9 @@ foreach ($d in $drop) {
 # `hermes_cli/web_server.py` expects the built SPA at
 # `<package>/web_dist/`. Without this, every HTTP path returns
 # {"error":"Frontend not built. Run: cd web && npm run build"}.
-$hermesWeb     = Join-Path $HermesDir "..\web" | Resolve-Path | Select-Object -ExpandProperty Path
-$hermesWebDist = Join-Path $HermesDir "web_dist"
+# Hermes dashboard SPA lives under the submodule: hermes/web → hermes/hermes_cli/web_dist (see vite.config.ts).
+$hermesWeb     = Join-Path $HermesDir "web" | Resolve-Path | Select-Object -ExpandProperty Path
+$hermesWebDist = Join-Path $HermesDir "hermes_cli\web_dist"
 if (-not (Test-Path (Join-Path $hermesWebDist "index.html"))) {
     if (-not (Test-Path (Join-Path $hermesWeb "node_modules"))) {
         Write-Host "  npm install (hermes/web)..." -ForegroundColor DarkGray
@@ -174,6 +175,9 @@ New-Item -ItemType Directory -Force -Path $siteDir | Out-Null
 $overlaysDest = Join-Path $Dist "overlays"
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $overlaysDest
 Copy-Item -Recurse -Force (Join-Path $PSScriptRoot "overlays") $overlaysDest
+$helpersDest = Join-Path $Dist "helpers"
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $helpersDest
+Copy-Item -Recurse -Force (Join-Path $PSScriptRoot "helpers") $helpersDest
 Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_entrypoint.py") (Join-Path $Dist "desktop_entrypoint.py")
 
 # A pth file so the bundled hermes/ + site-packages are on sys.path

@@ -8,6 +8,7 @@ gets:
     - Network egress allowlist         (network_allowlist.py, m4)
     - Secret loaded from Tauri vault   (secret_loader.py, m5)
     - Default toolset = keep-list      (default_toolset.py, m1)
+    - L1 builtin helpers tool          (builtin_helpers.py, m7)
     - Stripped-package import shims    (strip_shims.py, m1)
     - Windows process-group safety     (windows_safety.py, m1)
 
@@ -40,9 +41,11 @@ def apply_all() -> None:
     _run("strip_shims",         lambda: __import__(__name__ + ".strip_shims",       fromlist=["install"]).install())
     _run("windows_safety",      lambda: __import__(__name__ + ".windows_safety",    fromlist=["install"]).install())
     _run("secret_loader",       lambda: __import__(__name__ + ".secret_loader",     fromlist=["install"]).install())
+    _run("desktop_llm_config",  lambda: __import__(__name__ + ".desktop_llm_config", fromlist=["install"]).install())
     _run("workspace_jail",      lambda: __import__(__name__ + ".workspace_jail",    fromlist=["install"]).install())
     _run("network_allowlist",   lambda: __import__(__name__ + ".network_allowlist", fromlist=["install"]).install())
     _run("default_toolset",     lambda: __import__(__name__ + ".default_toolset",   fromlist=["install"]).install())
+    _run("builtin_helpers",     lambda: __import__(__name__ + ".builtin_helpers",   fromlist=["install"]).install())
     _run("approval_bridge",     lambda: __import__(__name__ + ".approval_bridge",   fromlist=["install"]).install())
 
     _APPLIED = True

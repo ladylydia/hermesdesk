@@ -18,9 +18,9 @@ const CARDS: CardCfg[] = [
   { id: "best", title: "Best quality", price: "Pennies per chat",
     body: "Top models. You pay your provider directly \u2014 usually a few dollars a month.",
     recommended: true, pickProvider: "openrouter" },
-  { id: "own", title: "I have my own", price: "\u2014",
-    body: "Pick from OpenAI, Anthropic, Nous, Groq, Mistral, or paste a custom URL.",
-    pickProvider: "openai" },
+  { id: "own", title: "My own API", price: "\u2014",
+    body: "Use any OpenAI-compatible address and access pass (your vendor, your keys).",
+    pickProvider: "custom" },
 ];
 
 export function PickBrain() {
@@ -28,7 +28,11 @@ export function PickBrain() {
   const draft = useDraft();
 
   function pick(card: CardCfg) {
-    updateDraft({ providerId: card.pickProvider });
+    if (card.pickProvider === "custom") {
+      updateDraft({ providerId: "custom", customBaseUrl: "", customModel: "" });
+    } else {
+      updateDraft({ providerId: card.pickProvider });
+    }
     nav("/onboarding/pass");
   }
 

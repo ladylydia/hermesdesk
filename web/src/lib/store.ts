@@ -7,6 +7,10 @@ export interface OnboardingDraft {
   providerId: ProviderId | null;
   apiKey: string;
   personality: Personality;
+  /** OpenAI-compatible API base URL (custom provider only). */
+  customBaseUrl?: string;
+  /** Model id as required by that endpoint (custom provider only). */
+  customModel?: string;
 }
 
 const KEY = "hermesdesk.onboarding-draft";

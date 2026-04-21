@@ -3,9 +3,9 @@
 A friendly Windows desktop AI assistant for non-technical users. Powered by
 the open-source [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 
-> Status: scaffolding / pre-alpha. Not yet usable. See
-> [docs/architecture.md](docs/architecture.md) and the project plan for the
-> roadmap.
+> Status: **early alpha** — suitable for developers dogfooding from source; the
+> `.msi` path exists but expect rough edges. See
+> [docs/architecture.md](docs/architecture.md) for architecture and build steps.
 
 ## What this is
 
@@ -62,6 +62,9 @@ cd hermesdesk
 
 # Build the Python bundle (downloads python-build-standalone)
 .\python\build_bundle.ps1
+
+# Optional: L1 built-in helper tests (path safety + whitelist; needs ``hermes/`` submodule)
+Set-Location python; python -m unittest discover -s tests -p "test_*.py" -v; Set-Location ..
 
 # Build the web UI
 cd web; npm ci; npm run build; cd ..

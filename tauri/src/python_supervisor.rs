@@ -16,6 +16,9 @@ pub struct SpawnConfig {
     pub approval_url: String,
     pub provider: String,
     pub llm_host: String,
+    pub api_base_url: Option<String>,
+    pub hermes_model: Option<String>,
+    pub inference_provider: Option<String>,
     pub power_user: bool,
 }
 
@@ -43,6 +46,18 @@ impl Supervisor {
             .env("HERMESDESK_PORT_FILE", &port_file)
             .env("HERMESDESK_PROVIDER", &cfg.provider)
             .env("HERMESDESK_LLM_HOST", &cfg.llm_host)
+            .env(
+                "HERMESDESK_API_BASE_URL",
+                cfg.api_base_url.as_deref().unwrap_or(""),
+            )
+            .env(
+                "HERMESDESK_MODEL",
+                cfg.hermes_model.as_deref().unwrap_or(""),
+            )
+            .env(
+                "HERMESDESK_INFERENCE_PROVIDER",
+                cfg.inference_provider.as_deref().unwrap_or(""),
+            )
             .env("HERMESDESK_SECRET_URL", &cfg.secret_url)
             .env("HERMESDESK_APPROVAL_URL", &cfg.approval_url)
             .env(

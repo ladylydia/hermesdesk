@@ -11,6 +11,7 @@ interface Status {
 export function Settings() {
   const [status, setStatus] = useState<Status | null>(null);
   const [powerUser, setPowerUser] = useState(false);
+  const [showRecipeMarket, setShowRecipeMarket] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -24,8 +25,21 @@ export function Settings() {
         const v = await invoke<boolean>("cmd_get_power_user");
         setPowerUser(!!v);
       } catch { /* command not implemented yet */ }
+      try {
+        const m = await invoke<boolean>("cmd_get_show_recipe_market");
+        setShowRecipeMarket(!!m);
+      } catch { /* older build */ }
     })().catch(console.error);
   }, []);
+
+  async function toggleRecipeMarket(next: boolean) {
+    try {
+      await invoke("cmd_set_show_recipe_market", { enabled: next });
+      setShowRecipeMarket(next);
+    } catch (e) {
+      console.error(e);
+    }
+  }
 
   async function togglePowerUser(next: boolean) {
     if (next) {
@@ -68,6 +82,11 @@ export function Settings() {
         <Section title="Power user mode"
           desc="Unlocks shell commands, code execution, browser automation, MCP servers, and cron. Off by default. Each action still asks permission.">
           <Toggle value={powerUser} onChange={togglePowerUser} />
+        </Section>
+
+        <Section title="Recipe market banner"
+          desc="When enabled, the Hermes Skills page shows a short preview banner (no downloads yet). The embedded server reads this from your app data folder.">
+          <Toggle value={showRecipeMarket} onChange={toggleRecipeMarket} />
         </Section>
 
         <Section title="Status">

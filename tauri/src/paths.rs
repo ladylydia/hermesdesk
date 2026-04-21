@@ -6,6 +6,7 @@ use tauri::{AppHandle, Manager};
 
 const SETTING_POWER_USER: &str = "hermesdesk.power_user";
 const SETTING_WORKSPACE: &str = "hermesdesk.workspace";
+const SETTING_SHOW_RECIPE_MARKET: &str = "hermesdesk.show_recipe_market";
 
 /// Resolve `%USERPROFILE%\Documents\HermesWork`, creating it if missing.
 pub fn ensure_workspace(app: &AppHandle) -> Result<PathBuf> {
@@ -60,6 +61,26 @@ pub fn is_power_user(app: &AppHandle) -> bool {
     matches!(read_setting(app, SETTING_POWER_USER).as_deref(), Some("1" | "true"))
 }
 
+pub fn is_show_recipe_market(app: &AppHandle) -> bool {
+    matches!(
+        read_setting(app, SETTING_SHOW_RECIPE_MARKET).as_deref(),
+        Some("1" | "true")
+    )
+}
+
+/// Mirror the setting into the data dir so embedded Python can read `/api/status` without a process restart.
+pub fn sync_show_recipe_market_flag(app: &AppHandle) -> Result<()> {
+    let dir = ensure_data_dir(app)?;
+    let path = dir.join("hermesdesk_show_recipe_market.txt");
+    let bytes: &[u8] = if is_show_recipe_market(app) {
+        b"1\n"
+    } else {
+        b"0\n"
+    };
+    std::fs::write(&path, bytes).with_context(|| format!("writing {}", path.display()))?;
+    Ok(())
+}
+
 fn read_setting(app: &AppHandle, _key: &str) -> Option<String> {
     // Tiny KV store backed by a JSON file under app_local_data_dir; we keep
     // the implementation here intentionally simple.
@@ -108,6 +129,22 @@ pub fn cmd_get_power_user(app: AppHandle) -> Result<bool, String> {
 pub fn cmd_set_power_user(app: AppHandle, enabled: bool) -> Result<(), String> {
     write_setting(&app, SETTING_POWER_USER, if enabled { "1" } else { "0" })
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn cmd_get_show_recipe_market(app: AppHandle) -> Result<bool, String> {
+    Ok(is_show_recipe_market(&app))
+}
+
+#[tauri::command]
+pub fn cmd_set_show_recipe_market(app: AppHandle, enabled: bool) -> Result<(), String> {
+    write_setting(
+        &app,
+        SETTING_SHOW_RECIPE_MARKET,
+        if enabled { "1" } else { "0" },
+    )
+    .map_err(|e| e.to_string())?;
+    sync_show_recipe_market_flag(&app).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

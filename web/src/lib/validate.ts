@@ -1,5 +1,49 @@
 import { findProvider, type ProviderId } from "./providers";
 
+/** Strip trailing slashes for OpenAI-compatible base URLs. */
+export function normalizeOpenAiBaseUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+/**
+ * Validate a custom OpenAI-compatible endpoint via GET /v1/models (or /models under the given base).
+ */
+export async function validateCustomEndpoint(
+  baseUrl: string,
+  apiKey: string
+): Promise<ValidateResult> {
+  const base = normalizeOpenAiBaseUrl(baseUrl);
+  if (!base) {
+    return { ok: false, message: "Please paste your API address (for example https://example.com/v1)." };
+  }
+  const trimmed = apiKey.trim();
+  if (!trimmed) {
+    return { ok: false, message: "Please paste your access pass." };
+  }
+  const modelsUrl = `${base}/models`;
+  try {
+    const res = await fetch(modelsUrl, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${trimmed}` },
+    });
+    if (res.status === 401 || res.status === 403) {
+      return { ok: false, message: "That pass didn't work. Double-check you copied the whole thing." };
+    }
+    if (!res.ok) {
+      return {
+        ok: false,
+        message: `That API address answered ${res.status}. Check the URL ends with /v1 (or your vendor's equivalent).`,
+      };
+    }
+    return { ok: true };
+  } catch {
+    return {
+      ok: false,
+      message: "Couldn't reach that API address. Check your internet connection and the URL.",
+    };
+  }
+}
+
 export interface ValidateResult {
   ok: boolean;
   message?: string;

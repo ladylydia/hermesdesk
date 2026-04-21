@@ -12,7 +12,9 @@ This avoids ever touching disk with the plaintext secret.
 Env wired by Tauri:
 
     HERMESDESK_SECRET_URL    http://127.0.0.1:PORT/secret/<token>
-    HERMESDESK_PROVIDER      openrouter | openai | anthropic | nous | ...
+    HERMESDESK_PROVIDER      openrouter | openai | custom | ...
+    HERMESDESK_API_BASE_URL optional; OpenAI-compatible base URL (custom / overrides)
+    HERMESDESK_INFERENCE_PROVIDER  optional; e.g. "custom" for Hermes routing
 
 The matching env var Hermes reads is derived by `_PROVIDER_ENV` below.
 """
@@ -28,6 +30,7 @@ log = logging.getLogger("hermesdesk.secret")
 _PROVIDER_ENV = {
     "openrouter": "OPENROUTER_API_KEY",
     "openai":     "OPENAI_API_KEY",
+    "custom":     "OPENAI_API_KEY",  # OpenAI-compatible base URL + key
     "anthropic":  "ANTHROPIC_API_KEY",
     "nous":       "NOUS_PORTAL_API_KEY",
     "groq":       "GROQ_API_KEY",
@@ -80,3 +83,11 @@ def install() -> None:
 
     os.environ[env_name] = secret
     log.info("secret loaded into %s (provider=%s)", env_name, provider)
+
+    api_base = os.environ.get("HERMESDESK_API_BASE_URL", "").strip()
+    if api_base:
+        os.environ["OPENAI_BASE_URL"] = api_base.rstrip("/")
+
+    inf = os.environ.get("HERMESDESK_INFERENCE_PROVIDER", "").strip()
+    if inf:
+        os.environ["HERMES_INFERENCE_PROVIDER"] = inf
