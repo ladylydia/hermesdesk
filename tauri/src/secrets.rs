@@ -256,3 +256,33 @@ pub async fn cmd_clear_secret(app: AppHandle) -> Result<(), String> {
     let _ = write_bool_setting(&app, VENDOR_LLM_DISABLED, true);
     Ok(())
 }
+
+#[tauri::command]
+pub async fn cmd_validate_endpoint(
+    url: String,
+    api_key: String,
+) -> Result<(), String> {
+    log::info!("cmd_validate_endpoint called: url={}", url);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .no_proxy()
+        .build()
+        .map_err(|e| format!("client build error: {}", e))?;
+    let res = client
+        .get(&url)
+        .header("Authorization", format!("Bearer {}", api_key.trim()))
+        .send()
+        .await
+        .map_err(|e| format!("Couldn't reach that API address: {} (url={})", e, url))?;
+    let status = res.status();
+    log::info!("cmd_validate_endpoint response: status={}", status);
+    if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
+        return Err("That pass didn't work. Double-check you copied the whole thing.".into());
+    }
+    // 400 means the server is reachable — some OpenAI-compatible APIs return 400
+    // for unauthenticated /models requests instead of 401.
+    if !status.is_success() && status != reqwest::StatusCode::BAD_REQUEST {
+        return Err(format!("That API address answered {}. Check the URL ends with /v1.", status));
+    }
+    Ok(())
+}

@@ -24,6 +24,8 @@ use tokio::sync::Mutex;
 pub struct AppState {
     pub supervisor: Arc<Mutex<Option<python_supervisor::Supervisor>>>,
     pub bridge_addr: Arc<Mutex<Option<std::net::SocketAddr>>>,
+    /// Loopback port for Hermes `web_server` (set after Python writes `port.txt`).
+    pub hermes_port: Arc<Mutex<Option<u16>>>,
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -36,6 +38,7 @@ pub fn run() {
     let state = AppState {
         supervisor: supervisor.clone(),
         bridge_addr: bridge_addr.clone(),
+        hermes_port: Arc::new(Mutex::new(None)),
     };
 
     tauri::Builder::default()
@@ -56,7 +59,9 @@ pub fn run() {
             secrets::cmd_save_secret,
             secrets::cmd_has_secret,
             secrets::cmd_clear_secret,
+            secrets::cmd_validate_endpoint,
             python_supervisor::cmd_python_status,
+            python_supervisor::cmd_open_hermes_dashboard,
             paths::cmd_workspace_path,
             paths::cmd_open_workspace,
             paths::cmd_get_power_user,
@@ -129,13 +134,23 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
     {
         let state: tauri::State<AppState> = app.state();
         *state.supervisor.lock().await = Some(supervisor);
+        *state.hermes_port.lock().await = Some(port);
     }
 
-    // 4. Point the main window at Python and reveal it.
+    // 4. Reveal the window. Only jump the WebView to Hermes when a secret is
+    //    already saved — otherwise onboarding stays on the Tauri shell (Vite /
+    //    bundled `web/`) so `invoke` works for `cmd_validate_endpoint`, etc.
+    let has_secret = secrets::cmd_has_secret(app.clone())
+        .await
+        .unwrap_or(false);
     if let Some(w) = app.get_webview_window("main") {
-        let url = format!("http://127.0.0.1:{port}/");
-        log::info!("loading {url}");
-        let _ = w.eval(&format!("window.location.replace({:?})", url));
+        if has_secret {
+            let url = format!("http://127.0.0.1:{port}/");
+            log::info!("loading {url} (saved secret present)");
+            let _ = w.eval(&format!("window.location.replace({:?})", url));
+        } else {
+            log::info!("no saved secret yet — keeping shell UI until onboarding finishes");
+        }
         let _ = w.show();
         let _ = w.set_focus();
     }

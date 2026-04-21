@@ -14,9 +14,14 @@ export function Done() {
     catch (e) { console.error(e); }
   }
 
-  function openChat() {
+  async function openChat() {
     clearDraft();
-    window.location.replace("/");
+    try {
+      await invoke("cmd_open_hermes_dashboard");
+    } catch (e) {
+      console.error(e);
+      window.location.replace("/");
+    }
   }
 
   return (
@@ -41,7 +46,7 @@ export function Done() {
         </button>
       </div>
 
-      <button onClick={openChat}
+      <button onClick={() => void openChat()}
         className="w-full rounded-2xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-6 py-4 text-lg font-medium hover:opacity-90 transition">
         Start chatting
       </button>
