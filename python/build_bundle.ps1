@@ -149,6 +149,38 @@ if (-not (Test-Path $hermesInit)) {
     "" | Set-Content -Path $hermesInit -Encoding ASCII
 }
 
+function ConvertTo-GitBashPath([string]$WindowsPath) {
+    $full = (Resolve-Path -LiteralPath $WindowsPath).Path
+    if ($full -match '^([A-Za-z]):\\(.*)$') {
+        $dl = $Matches[1].ToLowerInvariant()
+        $tail = $Matches[2] -replace '\\', '/'
+        return "/$dl/$tail"
+    }
+    throw "Cannot convert path to Git Bash form: $WindowsPath"
+}
+
+# Hermes `hermes/web/package.json` prebuild runs `sync-assets` with POSIX `rm`/`cp`; use Git Bash on Windows.
+function Invoke-HermesWebNpmCommand {
+    param(
+        [string]$WebDir,
+        [string[]]$NpmCmd
+    )
+    $gitBash = Join-Path ${env:ProgramFiles} "Git\bin\bash.exe"
+    if (Test-Path -LiteralPath $gitBash) {
+        $bashPath = ConvertTo-GitBashPath $WebDir
+        $argsLine = $NpmCmd -join ' '
+        $line = "set -e; cd '$bashPath' && npm $argsLine"
+        & $gitBash -lc $line
+        if ($LASTEXITCODE -ne 0) { throw "npm in hermes/web failed (exit $LASTEXITCODE): npm $argsLine" }
+    } else {
+        Push-Location $WebDir
+        try {
+            & npm @NpmCmd
+            if ($LASTEXITCODE -ne 0) { throw "npm failed (exit $LASTEXITCODE): $($NpmCmd -join ' ')" }
+        } finally { Pop-Location }
+    }
+}
+
 # ------------------------------------------------------------------ 4b. Build Hermes' SPA (web/ -> hermes_cli/web_dist)
 # `hermes_cli/web_server.py` expects the built SPA at
 # `<package>/web_dist/`. Without this, every HTTP path returns
@@ -163,14 +195,12 @@ $hermesWebDist = Join-Path $HermesDir "hermes_cli\web_dist"
 if ($SkipWebBuild) {
     Write-Host "  (skip) npm run build — using existing hermes_cli\web_dist" -ForegroundColor DarkYellow
 } else {
-    if (-not (Test-Path (Join-Path $hermesWeb "node_modules"))) {
-        Write-Host "  npm install (hermes/web)..." -ForegroundColor DarkGray
-        Push-Location $hermesWeb
-        try { npm install --no-audit --no-fund 2>&1 | Out-Null } finally { Pop-Location }
-    }
+    # Always install so `sync-assets` (prebuild) sees a complete `node_modules` — a prior Windows-only
+    # `npm install` can leave packages half-installed because `sync-assets` uses POSIX rm/cp.
+    Write-Host "  npm install (hermes/web)..." -ForegroundColor DarkGray
+    Invoke-HermesWebNpmCommand -WebDir $hermesWeb -NpmCmd @("install", "--no-audit", "--no-fund")
     Write-Host "  npm run build (hermes/web)..." -ForegroundColor DarkGray
-    Push-Location $hermesWeb
-    try { npm run build 2>&1 | Out-Null } finally { Pop-Location }
+    Invoke-HermesWebNpmCommand -WebDir $hermesWeb -NpmCmd @("run", "build")
 }
 if (-not (Test-Path (Join-Path $hermesWebDist "index.html"))) {
     throw "Hermes SPA build failed: $hermesWebDist\index.html not found (run without -SkipWebBuild to build)"
