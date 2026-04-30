@@ -56,8 +56,12 @@ Wraps `httpx.Client.send` (and async equivalent), plus `requests`'
 - Edge TTS: `speech.platform.bing.com`
 
 Any other host raises `PermissionError` with a message that points the
-user at the Settings page where they can add an exception. Power-user mode
-disables the allowlist (`HERMESDESK_NET_OPEN=1`).
+user at the Settings page where they can add an exception.
+
+The allowlist stays active in **both** default and **power-user** modes unless
+**`HERMESDESK_NET_OPEN=1`** is set (manual / advanced — **not** flipped
+automatically by the power-user toggle). See
+[`hermesdesk-capability-matrix.md`](hermesdesk-capability-matrix.md) §4.
 
 ## L4 — Per-tool gates
 
@@ -93,7 +97,8 @@ this document.
 
 ## See also
 
-- [HermesDesk capability matrix](hermesdesk-capability-matrix.md) — toolsets, workspace jail, network allowlist, approval bridge, and L1 quick actions, aligned with the current overlays and Tauri env.
+- [HermesDesk capability matrix](hermesdesk-capability-matrix.md) — toolsets, workspace jail, network allowlist, approval bridge, L1 quick actions, messaging gateway.
+- [Messaging gateway troubleshooting](troubleshooting.md) — §§12–16 (startup, PYTHONPATH, WinError 87).
 
 ## Reporting security issues
 

@@ -7,6 +7,7 @@ use tauri::{AppHandle, Manager};
 const SETTING_POWER_USER: &str = "hermesdesk.power_user";
 const SETTING_WORKSPACE: &str = "hermesdesk.workspace";
 const SETTING_SHOW_RECIPE_MARKET: &str = "hermesdesk.show_recipe_market";
+const SETTING_AUTO_GATEWAY: &str = "hermesdesk.auto_start_gateway";
 
 /// Resolve `%USERPROFILE%\Documents\HermesWork`, creating it if missing.
 pub fn ensure_workspace(app: &AppHandle) -> Result<PathBuf> {
@@ -88,6 +89,24 @@ pub fn is_show_recipe_market(app: &AppHandle) -> bool {
         read_setting(app, SETTING_SHOW_RECIPE_MARKET).as_deref(),
         Some("1" | "true")
     )
+}
+
+/// When true (default), **first app launch** starts ``hermes gateway run`` if ``hermes-home/.env`` looks configured.
+/// Restarting embedded Hermes (e.g. after Weixin login) always starts the gateway when configured, regardless of this flag.
+pub fn is_auto_start_gateway(app: &AppHandle) -> bool {
+    match read_setting(app, SETTING_AUTO_GATEWAY).as_deref() {
+        Some("0" | "false" | "no") => false,
+        _ => true,
+    }
+}
+
+pub fn set_auto_start_gateway_enabled(app: &AppHandle, enabled: bool) -> Result<(), String> {
+    write_setting(
+        app,
+        SETTING_AUTO_GATEWAY,
+        if enabled { "1" } else { "0" },
+    )
+    .map_err(|e| e.to_string())
 }
 
 /// Mirror the setting into the data dir so embedded Python can read `/api/status` without a process restart.
@@ -174,4 +193,14 @@ pub fn cmd_set_show_recipe_market(app: AppHandle, enabled: bool) -> Result<(), S
 pub fn cmd_set_personality(app: AppHandle, name: String) -> Result<(), String> {
     write_setting(&app, "hermesdesk.personality", &name)
         .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn cmd_get_auto_start_gateway(app: AppHandle) -> Result<bool, String> {
+    Ok(is_auto_start_gateway(&app))
+}
+
+#[tauri::command]
+pub fn cmd_set_auto_start_gateway(app: AppHandle, enabled: bool) -> Result<(), String> {
+    set_auto_start_gateway_enabled(&app, enabled)
 }

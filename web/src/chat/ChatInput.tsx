@@ -49,12 +49,12 @@ export function ChatInput({
   const canSend = !sending && (value.trim() || pendingAttachmentNames.length > 0);
 
   return (
-    <div className="shrink-0 bg-white px-3 pb-4 pt-1 dark:bg-zinc-950">
+    <div className="shrink-0 bg-zinc-50/90 px-3 pb-5 pt-2 dark:bg-[#0F172A]">
       <div
         className={cn(
-          "mx-auto max-w-3xl overflow-hidden rounded-[1.75rem] border border-zinc-200/95 bg-white",
-          "shadow-[0_2px_16px_rgba(0,0,0,0.06)]",
-          "dark:border-zinc-800 dark:bg-zinc-900/30"
+          "mx-auto max-w-3xl overflow-hidden rounded-lg border border-zinc-200/95 bg-white",
+          "shadow-[0_2px_12px_rgba(0,0,0,0.05)]",
+          "dark:border-zinc-700 dark:bg-zinc-800/50"
         )}
       >
         {pendingAttachmentNames.length > 0 && (
@@ -109,7 +109,7 @@ export function ChatInput({
               type="button"
               disabled={sending}
               onClick={() => fileRef.current?.click()}
-              className="flex h-9 w-9 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 disabled:opacity-40"
+              className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-700/80 disabled:cursor-not-allowed disabled:opacity-40"
               title={t("chat.attach")}
               aria-label={t("chat.attach")}
             >
@@ -123,8 +123,8 @@ export function ChatInput({
                 type="button"
                 onClick={() => void onStop()}
                 className={cn(
-                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white",
-                  "text-zinc-600 shadow-sm transition",
+                  "flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-zinc-200 bg-white",
+                  "text-zinc-600 shadow-sm transition active:scale-[0.98]",
                   "hover:border-red-200/90 hover:bg-red-50/90 hover:text-red-600",
                   "dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300",
                   "dark:hover:border-red-900/50 dark:hover:bg-red-950/30 dark:hover:text-red-400"
@@ -139,7 +139,7 @@ export function ChatInput({
               type="button"
               onClick={() => void onSend()}
               disabled={!canSend}
-              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-zinc-900 text-white shadow-sm transition hover:opacity-90 disabled:bg-zinc-200 disabled:text-zinc-400 dark:bg-zinc-100 dark:text-zinc-900 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sky-600 text-white shadow-sm transition hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-zinc-200 disabled:text-zinc-400 dark:bg-[#3B5BC7] dark:disabled:bg-zinc-800 dark:disabled:text-zinc-500"
               title={sending ? t("chat.sending") : t("chat.send")}
               aria-label={sending ? t("chat.sending") : t("chat.send")}
             >
@@ -148,7 +148,7 @@ export function ChatInput({
           </div>
         </div>
       </div>
-      <p className="mx-auto mt-2 max-w-3xl text-center text-[11px] text-zinc-400 dark:text-zinc-500">
+      <p className="mx-auto mt-2.5 max-w-3xl text-center text-xs leading-[1.5] text-zinc-400 dark:text-zinc-500">
         {t("chat.hint")}
       </p>
     </div>

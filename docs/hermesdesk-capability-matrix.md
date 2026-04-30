@@ -86,11 +86,27 @@ Which tools trigger approval is defined upstream in Hermes (`tools/approval.py` 
 ## 7. Chat UI vs agent capabilities
 
 - A **ChatGPT-style single page** is **UI only**; what the model can do is still bounded by **`platform_toolsets["cli"]`**, workspace jail, network allowlist, and approval bridge.
+- **Shell `/chat`** (`web/src/chat/`) talks to Hermes over loopback via Tauri **`invoke`** → [`tauri/src/chat.rs`](../tauri/src/chat.rs); capabilities match the same agent/toolset boundaries as the embedded dashboard desk chat.
 - **Terminal `cwd` note:** `_desk_chat_build_agent` uses `HERMES_WORKSPACE` or `TERMINAL_CWD` for `register_task_env_overrides` when present; Tauri currently sets **`HERMESDESK_WORKSPACE`**. If terminal should default to the workspace folder, align env var names in a follow-up.
+
+---
+
+## 8. Messaging gateway (second Python process)
+
+**Implementation:** [`tauri/src/gateway_supervisor.rs`](../tauri/src/gateway_supervisor.rs), Hermes upstream [`hermes/gateway/run.py`](../hermes/gateway/run.py).
+
+| Item | Description |
+|------|-------------|
+| **Lifecycle** | Tauri supervises **`python.exe -m gateway.run`** when **`hermes-home/.env`** contains messaging credentials (manual Start/Stop + optional cold-start auto-start). Distinct from **`desktop_entrypoint.py`** (Hermes web). |
+| **`strip_shims` boundary** | The **web child** stubs `gateway.run.main` so the dashboard never hosts the gateway entrypoint; the **gateway child** loads the real module. See [`strip_shims.py`](../python/overlays/strip_shims.py), [`architecture.md`](architecture.md). |
+| **Desk UX** | Onboarding / Settings blocks + **`cmd_gateway_*`**; QR/token flows in [`web/src/advanced/Settings.tsx`](../web/src/advanced/Settings.tsx). Channels shipped in Desk: **Weixin**, **QQ Bot**, **Feishu/Lark**, **Telegram** (token). |
+| **LLM for bots** | Gateway reuse **`secret_loader`** / Credential Manager injection — same provider key as shell chat. |
 
 ---
 
 ## Related docs
 
 - [safety.md](./safety.md) — layered threat model and onboarding defaults.
+- [gateway-desk-weixin-strategy.md](./gateway-desk-weixin-strategy.md) — route C product notes and channel index.
+- [troubleshooting.md](./troubleshooting.md) §12–§16 — gateway startup, PYTHONPATH, WinError 87.
 - [Overlays `__init__.py`](../python/overlays/__init__.py) — load order of patches (must run before Hermes imports).

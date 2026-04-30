@@ -423,6 +423,160 @@ then, this is a contributor-onboarding paragraph in `README.md`.
 
 ---
 
+## 11. MSI `cargo tauri build` fails on `Downloading ... go.microsoft.com` (Windows `11001` 不知道这样的主机)
+
+**Symptom**
+
+* `Finished release profile` and `Built application at: ...\hermesdesk.exe` succeed.
+* Then: `Downloading https://go.microsoft.com/fwlink/p/?LinkId=2124703`
+* `Error failed to bundle project` with `io: 不知道这样的主机。 (os error 11001)` (or a host-not-found message in English).
+
+**Root cause**
+
+With **`embedBootstrapper`**, the WiX step **downloads** the WebView2 bootstrapper at **build** time to embed it in the `.msi`. That needs working **DNS** (and usually outbound HTTPS) to `go.microsoft.com` and Microsoft CDNs. Error **11001** is **WSAHOST_NOT_FOUND** — the hostname could not be resolved (broken DNS, no network, VPN, or regional issues).
+
+**Fix** — in `tauri/tauri.conf.json` use **`downloadBootstrapper`** instead of **`embedBootstrapper`**: the installer stays smaller and **does not** fetch that file during `tauri build`. The end user may pull WebView2 at **install** time if the runtime is missing. For a large but offline-friendly installer, use **`offlineInstaller`**. If WebView2 is always pre-installed, **`skip`** avoids both downloads.
+
+**Lesson**
+
+> **Embed** vs **download** WebView2 is a trade-off between **build machine** network requirements and **end-user** behaviour. Do not use `embedBootstrapper` in CI or on networks that cannot resolve Microsoft download hosts.
+
+---
+
+## 12. Messaging gateway exits during startup (exit code 1) — stale bundle vs real config errors
+
+**Symptom**
+
+* HermesDesk **Settings → Messaging gateway** shows **Start failed: Gateway exited during startup (exit code: 1)** (often within a few seconds of clicking **Start gateway**).
+* Hermes **Keys (/env)** already lists several `WEIXIN_*` variables and the desk UI may show Weixin as **configured** — but the gateway child still dies immediately.
+
+**Root cause (most common on a dev machine)**
+
+HermesDesk spawns a **second** embedded Python process:
+
+`python.exe -m gateway.run`
+
+with **`HERMES_HOME`** pointing at **`%LOCALAPPDATA%\…\hermes-home`**, **`PYTHONPATH`** including **`runtime/site-packages`** and **`runtime/hermes`** (see `tauri/src/gateway_supervisor.rs`). That process loads **`hermes/gateway/run.py` from the copied runtime** under `python/dist/runtime/hermes/` (or the dev mirror under `tauri/target/debug/runtime/`), **not** from your git checkout of `hermes/` until you re-run **`python/build_bundle.ps1`**.
+
+Upstream fixes (e.g. *keep the gateway process alive after retryable first-connect failures* so Weixin/iLink can warm up) **do not affect the desk** until the bundle’s `hermes/gateway/run.py` is refreshed. An older file often exits `start_gateway()` with **code 1** right after the first failed connect attempt — which looks like a “mystery” failure even when `.env` is perfect.
+
+**Fix**
+
+1. Quit HermesDesk (unlock files under `python/dist/runtime` on Windows).
+2. From repo root: **`.\python\build_bundle.ps1`**
+3. Rebuild / relaunch HermesDesk so it uses the refreshed `python/dist/runtime`.
+
+Then read **`hermes-home/logs/gateway.log`** and **`hermes-home/gateway_state.json`** if anything still fails (wrong `WEIXIN_BASE_URL`, token revoked, duplicate gateway PID file, etc.).
+
+**Permanent guards / UX**
+
+* `tauri/src/gateway_supervisor.rs` — **`bundled_gateway_has_startup_survival()`** probes the bundled `run.py` for the survival-patch markers; `cmd_gateway_status` exposes **`embeddedGatewayStartupSurvival`** so Settings can show an amber **stale embed** hint before you waste time debugging Keys.
+* `cmd_gateway_start` — on fast exit, appends **log tail** + **recorded exit_reason** when available, and adds an explicit **“embedded run.py missing patch”** sentence when the probe fails.
+
+**Lesson**
+
+> Treat **`hermes/` submodule edits** and **desk-shipped Python** as two artefacts. After any meaningful `hermes/gateway/` change, **`build_bundle.ps1` is part of the edit**, not an optional optimisation.
+
+---
+
+## 13. Weixin / iLink: new QR login still uses an old token (duplicate `.env` lines or stray keys)
+
+**Symptom**
+
+* After HermesDesk **Route C** QR login (or CLI `hermes gateway setup` Weixin flow), the gateway still behaves like the **previous** Weixin account or token.
+
+**Root cause**
+
+1. **`save_env_value` only replaces the first line** that starts with `KEY=` in `hermes-home/.env`. A **second** `WEIXIN_TOKEN=` / `WEIXIN_ACCOUNT_ID=` line left in the file can still supply the old value when parsers or tools read “all assignments”.
+2. Copy-paste tutorials sometimes add **official-account style** variables (`WEIXIN_APP_ID`, `WEIXIN_APP_SECRET`, …) that are **not** used by Hermes iLink but sit next to iLink vars and confuse operators.
+
+**Fix (implemented)**
+
+* **`python/src/weixin_qr_worker.py`** — after a successful `qr_login`, **remove** `WEIXIN_APP_ID`, `WEIXIN_APP_SECRET` (best-effort), then **remove all lines** for `WEIXIN_ACCOUNT_ID` and `WEIXIN_TOKEN` via `remove_env_value`, then **write** the new credentials with `save_env_value` (single canonical lines).
+* **`hermes/hermes_cli/gateway.py`** — same sequence in **`_setup_weixin`** after QR success so CLI and desk stay consistent.
+
+**Manual workaround** (if you edit `.env` by hand)
+
+* Delete **duplicate** `WEIXIN_TOKEN` / `WEIXIN_ACCOUNT_ID` lines so only one remains, or comment stray `WEIXIN_APP_*` keys, then restart the messaging gateway.
+
+**Lesson**
+
+> Treat `.env` as a **single source of truth per key** — duplicates are not supported by the Hermes save helper and are a common foot-gun when switching bots.
+
+---
+
+## 14. Gateway exits with `ModuleNotFoundError` (import / PYTHONPATH)
+
+**Symptom**
+
+- **Start gateway** fails immediately with stderr mentioning **`No module named`** … (`gateway`, `yaml`, `hermes_cli`, etc.).
+- Often **`gateway.log`** never appears.
+
+**Root cause**
+
+The gateway child does **not** run `desktop_entrypoint.py`; it relies on **`PYTHONPATH`** (and `cwd`) set in **`gateway_supervisor.rs`**. Older desk builds or forked shells sometimes omitted **`site-packages`** or **`hermes/`**, so `-m gateway.run` could not resolve imports.
+
+**Fix**
+
+1. Confirm **`tauri/src/gateway_supervisor.rs`** sets **`PYTHONPATH`** to **`bundle_dir/site-packages`** **and** **`bundle_dir/hermes`** (join order as in source).
+2. Re-run **`.\python\build_bundle.ps1`** so **`python/dist/runtime`** layout matches expectations.
+3. Manual probe:
+
+```powershell
+$rt = "D:\project\hermesdesk\python\dist\runtime"
+$env:PYTHONPATH = "$rt\site-packages;$rt\hermes"
+Set-Location $rt
+.\python\python.exe -c "import gateway.run; import hermes_cli; print('OK')"
+```
+
+---
+
+## 15. Gateway 启动崩溃：`OSError: [WinError 87] 参数错误`
+
+**Symptom**
+
+* Gateway 启动后秒退，Tauri 错误提示：`Gateway exited during startup (exit code: 1)`
+* `stderr (captured)` 含 `OSError: [WinError 87] 参数错误。` 或 `SystemError`
+* 发生在 `gateway/status.py:578` — `os.kill(pid, 0)`
+* 日志中出现时，PID 文件/state 文件中指向的进程已不存在
+
+**Root cause**
+
+Python `os.kill(pid, 0)` 在 Windows 上对已退出/无效 PID 抛出 **`OSError`**（WinError 87）而非 `ProcessLookupError`。
+两次 Gateway 重启之间，`gateway.pid`（或 `gateway_state.json`）中残留上一次的旧 PID。新进程调用 `get_running_pid()` → `os.kill(stale_pid, 0)` → 未捕获的 `OSError` 导致崩溃。
+
+**Fix**
+
+1. `hermes/gateway/status.py:579`：`except (ProcessLookupError, PermissionError)` → `except (ProcessLookupError, PermissionError, OSError)`
+2. 删除 `{hermes-home}/gateway.pid` 和 `{hermes-home}/gateway_state.json`
+
+---
+
+## 16. QQ Bot 连接失败：`✗ qqbot error: [WinError 87]`
+
+**Symptom**
+
+* Gateway 日志：`Connecting to qqbot...` 后立即 `✗ qqbot error: [WinError 87]`
+* `errors.log` 中显示 `Reconnect qqbot error: [WinError 87]`，递增退避重试永久失败
+* 其他平台（微信、Telegram）连接正常
+
+**Root cause**
+
+同 §15 的 Windows `os.kill(pid, 0)` 行为差异，但发生在 **`acquire_scoped_lock()`**（`gateway/status.py:343`）。
+QQ Bot 连接时调用 `_acquire_platform_lock("qqbot-appid", ...)`，检测到 `{lock_dir}/qqbot-appid-*.lock` 中残留的旧 PID。
+验证该 PID 是否存活时 `os.kill(stale_pid, 0)` 抛出 `OSError`，未捕获导致整个 `connect()` 失败。
+
+**Fix**
+
+1. `hermes/gateway/status.py:344`：同样补 catch `OSError`
+2. 删除 `%USERPROFILE%\.local\state\hermes\gateway-locks\qqbot-appid-*.lock`
+
+**Lesson**
+
+Windows 上任何 `os.kill(pid, 0)` 调用都需要 catch `OSError`，不可仅依赖 `ProcessLookupError`。
+
+---
+
 ## Appendix: diagnostic one-liners
 
 Quick checks worth running before opening an issue.
@@ -445,7 +599,21 @@ Test-Path D:\project\hermesdesk\hermes\hermes_cli\web_dist\index.html
 # 5. Probe Hermes directly (bypass Tauri to isolate UI vs API issues)
 $port = (Select-String -Path .tauri-dev.log -Pattern "loading http://127.0.0.1:(\d+)").Matches.Groups[1].Value
 Invoke-WebRequest "http://127.0.0.1:$port/api/status" -UseBasicParsing -Proxy $null
+
+# 6. Does the *bundled* gateway include the first-connect survival patch?
+#    (HermesDesk checks for these substrings in hermes/gateway/run.py — both must be present.)
+$runPy = Join-Path (Get-Location) "python\dist\runtime\hermes\gateway\run.py"
+$r = Get-Content -Raw -LiteralPath $runPy -ErrorAction SilentlyContinue
+[bool]($r -and ($r.Contains("keep the process alive") -and $r.Contains("_platform_reconnect_watcher")))
+
+# 7. Tail the gateway log under the desk hermes-home (adjust HERMESDESK_DATA_DIR if you override it)
+# Typical per-user path (Tauri `identifier` com.hermesdesk.app → under %LOCALAPPDATA%).
+# If unsure, open Settings with Power user mode and read the workspace/data paths shown there.
+$hh = Join-Path $env:LOCALAPPDATA "com.hermesdesk.app\hermes-home"
+Get-Content -LiteralPath (Join-Path $hh "logs\gateway.log") -Tail 40 -ErrorAction SilentlyContinue
 ```
 
 If `#1` shows `ProxyEnable=1` and `#3` shows the bridge serve loop
 started but never accepted, **9 times out of 10 it's #1 from this doc**.
+
+If the gateway dies with **exit code 1** but **`#6` is `$false`**, re-run **`.\python\build_bundle.ps1`** before deeper debugging (**§12**).

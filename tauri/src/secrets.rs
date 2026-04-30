@@ -226,6 +226,33 @@ pub fn read_current_secret(app: &AppHandle) -> Option<String> {
 
 // --- IPC commands --------------------------------------------------------
 
+/// Non-secret LLM row from `settings.json` plus whether a usable secret exists (keyring or vendor demo).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LlmConfigPreview {
+    pub has_secret: bool,
+    pub provider: Option<String>,
+    pub host: Option<String>,
+    pub model: Option<String>,
+    pub api_base_url: Option<String>,
+}
+
+#[tauri::command]
+pub async fn cmd_llm_config_preview(app: AppHandle) -> Result<LlmConfigPreview, String> {
+    let has_secret = read_current_secret(&app).is_some();
+    let cfg = read_provider_cfg(&app);
+    Ok(LlmConfigPreview {
+        has_secret,
+        provider: cfg.as_ref().map(|c| c.provider.clone()),
+        host: cfg
+            .as_ref()
+            .map(|c| c.host.clone())
+            .filter(|s| !s.trim().is_empty()),
+        model: cfg.as_ref().and_then(|c| c.model.clone()),
+        api_base_url: cfg.as_ref().and_then(|c| c.api_base_url.clone()),
+    })
+}
+
 #[tauri::command]
 pub async fn cmd_save_secret(
     app: AppHandle,

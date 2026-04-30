@@ -2,13 +2,13 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { AppScaffold } from "./components/AppScaffold";
-import { BrandMark } from "./components/BrandMark";
-import { LanguageToggle } from "./components/LanguageToggle";
 import { useI18n } from "./lib/i18n";
 import { cn } from "./lib/cn";
+import { clearAllowChatWithoutApi, getAllowChatWithoutApi } from "./lib/apiKeyGate";
 
 /**
- * App entry: with saved API key go straight to chat; otherwise first-run onboarding.
+ * App entry: saved API key → chat. No key but user chose “configure later” on pass step → chat.
+ * Otherwise → onboarding.
  */
 export function Splash() {
   const { t } = useI18n();
@@ -20,13 +20,19 @@ export function Splash() {
       try {
         const has = await invoke<boolean>("cmd_has_secret");
         if (cancelled) return;
-        if (!has) {
-          nav("/onboarding/welcome", { replace: true });
+        if (has) {
+          clearAllowChatWithoutApi();
+          nav("/chat", { replace: true });
           return;
         }
-        nav("/chat", { replace: true });
+        const allowLater = getAllowChatWithoutApi();
+        if (allowLater) {
+          nav("/chat", { replace: true });
+          return;
+        }
+        nav("/onboarding/mode", { replace: true });
       } catch {
-        if (!cancelled) nav("/onboarding/welcome", { replace: true });
+        if (!cancelled) nav("/onboarding/mode", { replace: true });
       }
     })();
     return () => {
@@ -35,20 +41,14 @@ export function Splash() {
   }, [nav]);
 
   return (
-    <AppScaffold className="relative flex flex-col items-center justify-center">
-      <div className="absolute right-[var(--hd-page-pad-x)] top-4 z-10">
-        <LanguageToggle />
-      </div>
+    <AppScaffold className="flex h-full min-h-0 flex-col items-center justify-center">
       <div
         className={cn(
           "hd-glass w-full max-w-sm px-8 py-10 text-center",
           "sm:max-w-md sm:px-10"
         )}
       >
-        <div className="flex flex-col items-center gap-3">
-          <BrandMark size="lg" className="drop-shadow-sm" />
-          <div className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("brand")}</div>
-        </div>
+        <div className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("brand")}</div>
         <p className="hd-hint mt-3 justify-center">
           <span aria-hidden>✨</span>
           {t("splash.waking")}

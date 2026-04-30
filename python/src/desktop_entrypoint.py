@@ -120,12 +120,54 @@ def _wire_sys_path() -> None:
         sys.path.insert(0, str(here))
 
 
+def _verify_bundle_deps(log: logging.Logger) -> None:
+    """Fail fast if ``build_bundle.ps1`` did not populate ``site-packages`` (or deps are broken).
+
+    Common causes:
+      * Never ran ``python\\build_bundle.ps1`` → empty ``site-packages``.
+      * Inherited ``PYTHONPATH`` from the parent shell shadowing real PyYAML
+        (Tauri now strips it; devs should avoid exporting a bogus ``yaml``).
+      * Wrong PyPI package named ``yaml`` installed instead of ``PyYAML``.
+    """
+    here = Path(__file__).resolve().parent
+    sp = here / "site-packages"
+    if not sp.is_dir() or not (sp / "yaml").exists():
+        log.error(
+            "Bundle site-packages missing PyYAML layout under %s. "
+            "From the repo root run: .\\python\\build_bundle.ps1",
+            sp,
+        )
+        raise SystemExit(4)
+    try:
+        import yaml as _yaml  # type: ignore[no-redef]
+    except ImportError as e:
+        log.error("Cannot import yaml: %s. Re-run .\\python\\build_bundle.ps1", e)
+        raise SystemExit(4) from e
+    if not hasattr(_yaml, "safe_load"):
+        log.error(
+            "Broken `yaml` module at %s (expected PyYAML with safe_load). "
+            "Remove conflicting PyPI package `yaml` / clear PYTHONPATH, then rebuild bundle.",
+            getattr(_yaml, "__file__", "?"),
+        )
+        raise SystemExit(4)
+    try:
+        import fastapi  # noqa: F401
+        import uvicorn  # noqa: F401
+    except ImportError as e:
+        log.error(
+            "fastapi/uvicorn missing from bundle: %s. Re-run .\\python\\build_bundle.ps1",
+            e,
+        )
+        raise SystemExit(4)
+
+
 def main() -> int:
     _setup_logging()
     log = logging.getLogger("hermesdesk.entry")
     log.info("starting HermesDesk Python (pid=%d)", os.getpid())
 
     _wire_sys_path()
+    _verify_bundle_deps(log)
     hermes_home = _redirect_hermes_home()
     log.info("HERMES_HOME -> %s", hermes_home)
 

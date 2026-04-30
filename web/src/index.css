@@ -1,12 +1,20 @@
 @import "tailwindcss";
 
-/* Shell layout: spacing + type scale (rem follows ui-prefs / root font-size). */
+/* Shell layout: spacing + type scale (rem follows ui-prefs / root font-size).
+   UI_suggestion_4_25: 4px grid, gray ramp, semantic pastels, radii (pill / 8 / 4). */
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, "Noto Sans", "PingFang SC", "Microsoft YaHei", sans-serif;
-  --radius-shell: 1rem;
-  --radius-shell-lg: 1.25rem;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", "Consolas", monospace;
+  --radius-shell: 0.5rem; /* 8px — cards, inputs, default buttons */
+  --radius-shell-lg: 1rem; /* 16px — glass panels */
+  --radius-shell-sm: 0.25rem; /* 4px — chips, inline controls */
+  --radius-shell-pill: 9999px;
   --shadow-shell: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -4px rgb(0 0 0 / 0.07);
+  /* Primary (UI accent; not a “brand mark”) */
+  --color-hd-primary-500: oklch(0.62 0.14 250);
+  --color-hd-primary-600: oklch(0.55 0.15 250);
+  --color-hd-primary-700: oklch(0.48 0.14 250);
 }
 
 :root {
@@ -14,11 +22,30 @@
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Page rhythm (used by AppScaffold + sections) */
+  /* Page rhythm (4px grid: 16–24px) */
   --hd-page-pad-x: 1.5rem;
   --hd-page-pad-y: 1.75rem;
   --hd-stack-gap: 1.5rem;
+  --hd-card-gap: 1.5rem; /* 24px between setting cards */
   --hd-content-max: 40rem;
+  /* Semantic (soft) */
+  --hd-success-bg: oklch(0.95 0.04 150);
+  --hd-success-fg: oklch(0.35 0.12 150);
+  --hd-error-bg: oklch(0.96 0.03 25);
+  --hd-error-fg: oklch(0.4 0.16 25);
+  --hd-info-bg: oklch(0.95 0.04 250);
+  --hd-info-fg: oklch(0.4 0.12 250);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --hd-success-bg: oklch(0.28 0.06 150);
+    --hd-success-fg: oklch(0.78 0.1 150);
+    --hd-error-bg: oklch(0.3 0.05 25);
+    --hd-error-fg: oklch(0.82 0.08 25);
+    --hd-info-bg: oklch(0.28 0.06 250);
+    --hd-info-fg: oklch(0.78 0.1 250);
+  }
 }
 
 @layer components {
@@ -42,12 +69,56 @@
     @apply text-sm font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400;
   }
   .hd-meta {
-    @apply text-xs leading-relaxed text-zinc-500 dark:text-zinc-500;
+    @apply text-xs leading-[1.5] text-zinc-500 dark:text-zinc-500;
   }
-  /* “Hermes 式” 提示条：小表情 + 短句，不强依赖调色 */
+  /* 14px/22px 正文 + 12px/18px 辅助 */
+  .hd-body {
+    @apply text-sm leading-[1.57] text-zinc-600 dark:text-zinc-300;
+  }
+  .hd-card-title {
+    @apply text-base font-semibold leading-6 text-zinc-900 dark:text-zinc-100;
+  }
+  /* 等宽：路径、行内 code */
+  .hd-mono,
+  .hd-mono code {
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+  .hd-inline-code {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    @apply rounded px-1.5 py-0.5 text-[0.8125rem] font-medium;
+    @apply bg-zinc-100 text-zinc-800 dark:bg-zinc-800/90 dark:text-zinc-200;
+  }
+  /* “Hermes 式” 提示条 */
   .hd-hint {
     @apply inline-flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400;
+  }
+  .hd-btn-ghost {
+    @apply rounded-lg px-3 py-1.5 text-sm text-zinc-600 transition;
+    @apply hover:bg-zinc-100/90 active:scale-[0.98] active:opacity-90;
+    @apply dark:text-zinc-400 dark:hover:bg-zinc-800/80;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .hd-btn-segment-active {
+    @apply bg-sky-600 text-white dark:bg-sky-500;
+  }
+  .hd-btn-segment-idle {
+    @apply bg-transparent text-zinc-600 hover:bg-zinc-100;
+    @apply dark:text-zinc-400 dark:hover:bg-zinc-800/80;
+  }
+  .hd-semantic-error {
+    background: var(--hd-error-bg);
+    color: var(--hd-error-fg);
+  }
+  .hd-semantic-success {
+    background: var(--hd-success-bg);
+    color: var(--hd-success-fg);
   }
 }
 
 html, body, #root { height: 100%; margin: 0; }
+
+/* 自定义标题栏：右侧按钮可点，左侧拖动移动窗口（Tauri + WebView2） */
+.hermes-titlebar-nodrag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

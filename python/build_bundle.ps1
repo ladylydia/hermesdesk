@@ -9,6 +9,7 @@
 #   ├── hermes/                   <- the upstream submodule, prune-copied in
 #   ├── overlays/                 <- HermesDesk runtime overlays
 #   ├── desktop_entrypoint.py     <- Tauri spawns this
+#   ├── weixin_qr_worker.py       <- optional Route C Weixin QR child
 #   └── BUNDLE_INFO.json          <- versions + hashes for the updater
 #
 # Usage:
@@ -129,7 +130,6 @@ $drop = @(
     "hermes_cli\uninstall.py",     # POSIX geteuid; we have our own MSI uninstaller
     # Keep tools/environments/file_sync.py — ssh/modal/daytona import it; dropping it breaks agent init.
     "tools\rl_training_tool.py",
-    "tools\send_message_tool.py",
     "tools\feishu_doc_tool.py",
     "tools\feishu_drive_tool.py",
     "tools\homeassistant_tool.py",
@@ -140,6 +140,13 @@ $drop = @(
 foreach ($d in $drop) {
     $f = Join-Path $bundledHermes $d
     if (Test-Path $f) { Remove-Item -Force -Recurse $f }
+}
+
+# Prevent implicit namespace package causing subthread import failures
+# (gateway/run.py spawns cron-ticker thread — from cron.scheduler import tick)
+$hermesInit = Join-Path $bundledHermes "__init__.py"
+if (-not (Test-Path $hermesInit)) {
+    "" | Set-Content -Path $hermesInit -Encoding ASCII
 }
 
 # ------------------------------------------------------------------ 4b. Build Hermes' SPA (web/ -> hermes_cli/web_dist)
@@ -172,16 +179,52 @@ Copy-Item -Recurse -Force $hermesWebDist (Join-Path $bundledHermes "hermes_cli\w
 
 # ------------------------------------------------------------------ 5. Install deps into a target dir (no venv)
 $siteDir = Join-Path $Dist "site-packages"
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $siteDir
+function Clear-BundleSitePackages {
+    param([string]$Path)
+    if (-not (Test-Path -LiteralPath $Path)) { return }
+    $lastErr = $null
+    for ($i = 0; $i -lt 6; $i++) {
+        try {
+            Remove-Item -Recurse -Force -LiteralPath $Path -ErrorAction Stop
+            return
+        } catch {
+            $lastErr = $_
+            Start-Sleep -Seconds 2
+        }
+    }
+    $stale = "$Path.stale_" + [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    try {
+        Move-Item -LiteralPath $Path -Destination $stale -Force -ErrorAction Stop
+        Write-Host "Note: could not delete site-packages in place (files locked). Renamed to:" -ForegroundColor Yellow
+        Write-Host "  $stale" -ForegroundColor Yellow
+        Write-Host "Quit HermesDesk / kill any python.exe using this runtime, then delete that folder manually." -ForegroundColor Yellow
+        return
+    } catch {
+        $hint = "Usually a .pyd is still loaded: close HermesDesk, end any python.exe under:`n  $Dist`nthen rerun: .\python\build_bundle.ps1"
+        throw ("Cannot remove or rename site-packages: " + $lastErr.Exception.Message + "`n`n" + $hint)
+    }
+}
+Clear-BundleSitePackages -Path $siteDir
 New-Item -ItemType Directory -Force -Path $siteDir | Out-Null
 
+# ``--upgrade`` avoids "Target directory … already exists" when anything survived under
+# ``site-packages`` or pip merges wheels that touch the same top-level names.
 & $Py -m pip install `
+    --upgrade `
     --target $siteDir `
     --no-warn-script-location `
     --platform win_amd64 `
     --python-version 3.11 `
     --only-binary=:all: `
     -r (Join-Path $PSScriptRoot "requirements-desktop.txt")
+
+Write-Host "Verifying pip install (PyYAML / fastapi / uvicorn)..." -ForegroundColor DarkGray
+$verifyScript = Join-Path $PSScriptRoot "tools\verify_bundle_site_packages.py"
+& $Py $verifyScript $Dist
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "pip verification failed (exit $LASTEXITCODE). Fix errors above, or delete python/dist/runtime and rebuild."
+    exit 11
+}
 
 # ------------------------------------------------------------------ 6. Copy overlays + entrypoint
 $overlaysDest = Join-Path $Dist "overlays"
@@ -191,6 +234,9 @@ $helpersDest = Join-Path $Dist "helpers"
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue $helpersDest
 Copy-Item -Recurse -Force (Join-Path $PSScriptRoot "helpers") $helpersDest
 Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_entrypoint.py") (Join-Path $Dist "desktop_entrypoint.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\weixin_qr_worker.py") (Join-Path $Dist "weixin_qr_worker.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\qqbot_qr_worker.py") (Join-Path $Dist "qqbot_qr_worker.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\feishu_qr_worker.py") (Join-Path $Dist "feishu_qr_worker.py")
 
 # A pth file so the bundled hermes/ + site-packages are on sys.path
 $pthBody = @(

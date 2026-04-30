@@ -1,11 +1,37 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { findProvider } from "../../lib/providers";
+import { findProvider, type ProviderId } from "../../lib/providers";
 import { useI18n } from "../../lib/i18n";
 import { validateKey, validateCustomEndpoint, normalizeOpenAiBaseUrl } from "../../lib/validate";
-import { clearDraft, updateDraft, useDraft } from "../../lib/store";
+import { updateDraft, useDraft } from "../../lib/store";
+import { clearAllowChatWithoutApi, setAllowChatWithoutApi } from "../../lib/apiKeyGate";
+import { getNextPathAfterPass } from "../flowConfig";
+import {
+  WizardFooter,
+  WizardFooterActions,
+  WizardFooterHint,
+  WizardPrimaryButton,
+  WizardSecondaryButton,
+} from "../wizard-ui";
+
+type LlmConfigPreview = {
+  hasSecret: boolean;
+  provider: string | null;
+  host: string | null;
+  model: string | null;
+  apiBaseUrl: string | null;
+};
+
+function providerDisplayLabel(id: string | null | undefined): string {
+  if (!id) return "";
+  try {
+    return findProvider(id as ProviderId).label;
+  } catch {
+    return id;
+  }
+}
 
 export function GetAccessPass() {
   const { t } = useI18n();
@@ -16,6 +42,31 @@ export function GetAccessPass() {
   const [modelId, setModelId] = useState(draft.customModel ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<LlmConfigPreview | null>(null);
+
+  useEffect(() => {
+    invoke<LlmConfigPreview>("cmd_llm_config_preview")
+      .then(setPreview)
+      .catch(() =>
+        setPreview({
+          hasSecret: false,
+          provider: null,
+          host: null,
+          model: null,
+          apiBaseUrl: null,
+        })
+      );
+  }, []);
+
+  useEffect(() => {
+    if (!draft.setupMode) {
+      nav("/onboarding/mode", { replace: true });
+    }
+  }, [draft.setupMode, nav]);
+
+  if (!draft.setupMode) {
+    return null;
+  }
 
   if (!draft.providerId) {
     nav("/onboarding/brain", { replace: true });
@@ -24,6 +75,12 @@ export function GetAccessPass() {
   const provider = findProvider(draft.providerId);
 
   const isCustom = provider.id === "custom";
+
+  useEffect(() => {
+    if (!preview?.hasSecret || !isCustom) return;
+    setBaseUrl((u) => (u.trim() ? u : preview.apiBaseUrl?.trim() ?? ""));
+    setModelId((m) => (m.trim() ? m : preview.model?.trim() ?? ""));
+  }, [preview, isCustom]);
 
   async function openSignup() {
     if (!provider.signupUrl) return;
@@ -35,9 +92,21 @@ export function GetAccessPass() {
   }
 
   async function onSave() {
+    const mode = draft.setupMode;
+    if (!mode) return;
     setBusy(true);
     setError(null);
     try {
+      if (preview?.hasSecret && !key.trim()) {
+        try {
+          await invoke("cmd_set_personality", { name: draft.personality });
+        } catch {
+          /* best-effort */
+        }
+        clearAllowChatWithoutApi();
+        nav(getNextPathAfterPass(mode), { replace: true });
+        return;
+      }
       if (isCustom) {
         const mid = modelId.trim();
         if (!mid) {
@@ -77,8 +146,8 @@ export function GetAccessPass() {
       } catch {
         /* best-effort */
       }
-      clearDraft();
-      nav("/chat", { replace: true });
+      clearAllowChatWithoutApi();
+      nav(getNextPathAfterPass(mode), { replace: true });
     } catch (e: unknown) {
       setError(typeof e === "string" ? e : (e as Error)?.message ?? t("pass.errSave"));
     } finally {
@@ -86,9 +155,20 @@ export function GetAccessPass() {
     }
   }
 
-  const canSubmit = isCustom
-    ? Boolean(key.trim() && baseUrl.trim() && modelId.trim())
-    : Boolean(key.trim());
+  function onSkip() {
+    const mode = draft.setupMode;
+    if (!mode) return;
+    void invoke("cmd_set_personality", { name: draft.personality }).catch(() => {});
+    setAllowChatWithoutApi();
+    nav(getNextPathAfterPass(mode), { replace: true });
+  }
+
+  const continuingWithSaved = Boolean(preview?.hasSecret && !key.trim());
+  const canSubmit = continuingWithSaved
+    ? true
+    : isCustom
+      ? Boolean(key.trim() && baseUrl.trim() && modelId.trim())
+      : Boolean(key.trim());
 
   const fieldClass =
     "w-full rounded-[var(--radius-shell)] border border-zinc-300/90 bg-white/90 px-4 py-3 font-mono text-sm dark:border-zinc-700 dark:bg-zinc-900/90";
@@ -101,6 +181,27 @@ export function GetAccessPass() {
           {isCustom ? t("pass.customLead1") : t("pass.providerLead", { label: provider.label })}
         </p>
       </div>
+
+      {preview?.hasSecret ? (
+        <div className="hd-glass-subtle space-y-2 rounded-[var(--radius-shell)] border border-emerald-200/90 bg-emerald-50/70 px-4 py-3 text-sm leading-relaxed text-emerald-950 dark:border-emerald-800/80 dark:bg-emerald-950/35 dark:text-emerald-100">
+          <p className="font-medium">{t("pass.savedBanner")}</p>
+          <ul className="list-inside list-disc space-y-1 pl-0.5 text-xs opacity-95">
+            {preview.provider ? (
+              <li>
+                {t("pass.savedProviderLine", {
+                  label: providerDisplayLabel(preview.provider),
+                  id: preview.provider,
+                })}
+              </li>
+            ) : null}
+            {preview.host ? <li>{t("pass.savedHostLine", { host: preview.host })}</li> : null}
+            {preview.model ? <li>{t("pass.savedModelLine", { model: preview.model })}</li> : null}
+            {preview.apiBaseUrl ? (
+              <li className="break-all">{t("pass.savedBaseUrlLine", { url: preview.apiBaseUrl })}</li>
+            ) : null}
+          </ul>
+        </div>
+      ) : null}
 
       {!isCustom && (
         <ol className="hd-glass-subtle list-decimal space-y-2.5 pl-6 pr-4 py-4 text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
@@ -169,21 +270,28 @@ export function GetAccessPass() {
           value={key}
           onChange={(e) => setKey(e.target.value)}
           placeholder={
-            provider.keyPrefixHint ? `${provider.keyPrefixHint}\u2026` : t("pass.phKey")
+            preview?.hasSecret
+              ? t("pass.keyPlaceholderSaved")
+              : provider.keyPrefixHint
+                ? `${provider.keyPrefixHint}\u2026`
+                : t("pass.phKey")
           }
           className={fieldClass}
         />
         {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       </div>
 
-      <button
-        type="button"
-        onClick={onSave}
-        disabled={busy || !canSubmit}
-        className="w-full rounded-[var(--radius-shell-lg)] bg-zinc-900 px-6 py-4 text-lg font-medium text-white transition hover:opacity-90 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900"
-      >
-        {busy ? t("pass.checkWait") : t("pass.cta")}
-      </button>
+      <WizardFooter>
+        <WizardFooterActions>
+          <WizardSecondaryButton onClick={onSkip} disabled={busy}>
+            {t("pass.skipCta")}
+          </WizardSecondaryButton>
+          <WizardPrimaryButton onClick={() => void onSave()} disabled={busy || !canSubmit}>
+            {busy ? t("pass.checkWait") : preview?.hasSecret && !key.trim() ? t("pass.continueCta") : t("pass.cta")}
+          </WizardPrimaryButton>
+        </WizardFooterActions>
+        <WizardFooterHint>{t("pass.skipHint")}</WizardFooterHint>
+      </WizardFooter>
     </div>
   );
 }

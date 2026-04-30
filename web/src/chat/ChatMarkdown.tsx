@@ -12,7 +12,7 @@ type Props = {
 export function ChatMarkdown({ text, className = "" }: Props) {
   return (
     <div
-      className={`chat-md text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 ${className}`}
+      className={`chat-md text-sm leading-[1.6] text-zinc-800 dark:text-zinc-200 ${className}`}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
@@ -56,7 +56,7 @@ export function ChatMarkdown({ text, className = "" }: Props) {
                     <span>{lang}</span>
                   </div>
                 )}
-                <pre className="p-4 overflow-x-auto bg-zinc-900 text-zinc-100 text-xs leading-relaxed">
+                <pre className="p-4 overflow-x-auto bg-zinc-900 font-mono text-zinc-100 text-xs leading-relaxed">
                   {children}
                 </pre>
               </div>
@@ -72,10 +72,7 @@ export function ChatMarkdown({ text, className = "" }: Props) {
               );
             }
             return (
-              <code
-                className="px-1 py-0.5 rounded bg-zinc-200/80 dark:bg-zinc-800 text-xs"
-                {...rest}
-              >
+              <code className="hd-inline-code" {...rest}>
                 {children}
               </code>
             );

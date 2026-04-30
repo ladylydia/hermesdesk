@@ -18,9 +18,10 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 ## What you are testing (current product)
 
-- **Shell (Tauri + `web/`)**: Splash, onboarding, Settings, system tray, locale toggle. The shell does **not** auto-open the Hermes web app on every return visit—you choose when to open it.
-- **Embedded Hermes web** (`http://127.0.0.1:<port>/`): Dashboard-style UI (status, config, sessions, etc.) served by the bundled Hermes Python stack. It is **not** a full standalone “chat app” in one screen; **桌面试聊** and deeper in-shell chat are **roadmap**, not a missing entry.
-- **Language**: When you open the dashboard from the shell, the app passes `hermesdesk_lang=zh|en` so the Hermes web first paint can match the shell language.
+- **Shell (Tauri + `web/`)**: Splash routing, onboarding (minimal + optional messaging sections), **`/chat`** shell chat, Settings (power user, proxy, **messaging gateway**, Telegram / Feishu / QQ / Weixin blocks, pairing). The shell **does not** auto-navigate to the Hermes dashboard on cold start; user opens it when ready.
+- **Embedded Hermes web** (`http://127.0.0.1:<port>/`): Full dashboard (Keys, sessions, desk chat inside Hermes web, Skills, etc.).
+- **Messaging gateway**: Second supervised Python process **`python -m gateway.run`** when `.env` has channel credentials — **Settings → Messaging gateway** plus [`docs/troubleshooting.md`](troubleshooting.md) §12 if startup fails.
+- **Language**: Opening the dashboard from the shell passes `hermesdesk_lang=zh|en` where applicable.
 
 ## A. Install
 
@@ -38,11 +39,12 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 ## B. First launch (cold)
 
 - [ ] App opens within a few seconds (Splash visible)
-- [ ] If no API key yet: routes to **onboarding** (no Hermes web yet)
-- [ ] If a key already exists: Splash shows **returning** copy and a primary button to **open the Hermes dashboard** in the same window (does **not** auto-navigate by itself)
+- [ ] If no API key yet: routes to **onboarding** (no forced Hermes web navigation)
+- [ ] If a key already exists: Splash routes to **`/chat`** (Hermes dashboard not auto-loaded)
+- [ ] Optional: user chose **configure API later** → Splash may route to **`/chat`** without Credential Manager key (limited flows — see shell `apiKeyGate`)
 - [ ] No console window flashes or stays open
 - [ ] Tray icon appears
-- [ ] `%LOCALAPPDATA%\HermesDesk\logs\hermesdesk.log` exists and contains a line like `python ready on port` with a port number (Hermes is up)
+- [ ] `%LOCALAPPDATA%\HermesDesk\logs\hermesdesk.log` exists and contains a line like `python ready on port` with a port number (Hermes web stack is up)
 
 ## C. Onboarding wizard (zero-jargon happy path)
 
@@ -55,13 +57,14 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
   - [ ] `cmdkey /list:HermesDesk*` lists the credential
 - [ ] Pick a vibe -> **Done** page renders
 - [ ] "Open workspace folder" opens `Documents\HermesWork` in Explorer
-- [ ] The Done primary CTA invokes **open dashboard** (navigates the main webview to `http://127.0.0.1:<port>/` with optional `hermesdesk_lang=...`), not a separate "chat-only" shell screen
+- [ ] Done primary CTA opens **`/chat`** or **dashboard** per build UX; extended wizard optionally completes **one** messaging channel (Weixin / QQ / Feishu / Telegram)
 
-## D. Hermes web (embedded dashboard) sanity
+## D. Hermes web + shell `/chat` sanity
 
-- [ ] After opening from Splash or Done, the main window shows the **Hermes** web UI (not a blank page). If you see "not ready", wait a few seconds and use **open dashboard** again.
-- [ ] **Smoke**: From the Hermes UI, run a minimal interaction your build supports (e.g. status page loads, or a short model-backed request if **桌面试聊** is enabled in that build). Expectations depend on the Hermes revision bundled for the release.
-- [ ] (When applicable) Drop a `.txt` file into the workspace folder and confirm Hermes/your test flow can see workspace-scoped tools—aligned with that release’s Hermes capabilities.
+- [ ] From shell menu/action: **Open dashboard** loads Hermes UI at `http://127.0.0.1:<port>/` (not blank). Retry if Hermes was still warming up.
+- [ ] **`/chat`**: send a short message and receive an assistant reply (same LLM key as dashboard).
+- [ ] **Smoke**: From Hermes UI, load status / Keys / minimal model-backed flow supported by bundled Hermes revision.
+- [ ] (When applicable) Drop a `.txt` file into the workspace folder and confirm workspace-scoped tools behave per jail rules.
 - [ ] (When applicable) Ask for an action that should be **jailed** to the workspace; out-of-workspace paths should be denied with a clear error.
 
 ## E. Safety / Power user
@@ -76,14 +79,14 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 ## F. Persistence + restart
 
-- [ ] Quit via tray "Quit" - no orphan `python.exe` in Task Manager
-- [ ] Reopen - skips onboarding; Splash **returning** page appears (user taps **open dashboard** to load Hermes again)
-- [ ] Reboot the VM, open the app - same behavior, key still works
+- [ ] Quit via tray "Quit" — no orphan **`python.exe`** processes (expect **two** while messaging gateway was running: web + gateway — both should exit)
+- [ ] Reopen — skips onboarding when configured; Splash routes per **`cmd_has_secret`** / gate flags (**`/chat`** when key exists)
+- [ ] Reboot the VM, open the app — same behavior, key still works
 
 ## G. Network allowlist
 
-- [ ] In Power-user mode, ask the agent to fetch `https://example.com` - blocked with a clear error message
-- [ ] Settings -> add `example.com` to extra hosts -> retry - succeeds
+- [ ] Ask the agent to fetch `https://example.com` — blocked with a clear error unless the host is allowlisted.
+- [ ] Settings → add **`example.com`** to extra hosts → retry → succeeds (without relying on power-user toggle to disable the allowlist).
 
 ## H. Updates
 
@@ -112,6 +115,14 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 - [ ] Tab order through onboarding is sensible
 - [ ] Screen reader (NVDA) reads each step's heading and primary action
 - [ ] System "high contrast" theme does not break the wizard
+
+## L. Messaging gateway smoke
+
+- [ ] **Settings → Messaging gateway**: Start / Stop responds; status text updates (poll every few seconds while on page)
+- [ ] With **no** messaging vars in `hermes-home/.env`: gateway section explains eligibility / points to Keys or onboarding
+- [ ] Configure **one** channel (Telegram token fastest; or QQ/Feishu/Weixin QR if test accounts exist); confirm `.env` keys appear (Hermes Keys)
+- [ ] **Start gateway** — remains running ≥10s (no immediate exit **1**); if instant failure, verify **`embeddedGatewayStartupSurvival`** hint and **`python/build_bundle.ps1`** ([troubleshooting §12](troubleshooting.md))
+- [ ] Send a test message on that platform → assistant responds using configured LLM
 
 ---
 

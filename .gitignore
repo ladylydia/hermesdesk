@@ -47,3 +47,9 @@ windows-port-report.txt
 
 # Windows reserved name accident
 tauri/nul
+
+# Never commit accidental debris under app icons (local folders / Recycle Bin)
+tauri/icons/$RECYCLE.BIN/
+tauri/icons/2023-2024学年第一学期课程/
+tauri/icons/2023-2024学年第二学期课程/
+tauri/_icons_new/

@@ -1,35 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <defs>
-    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#1a1a2e" flood-opacity="0.2"/>
-    </filter>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@700&amp;display=swap');
+      .bg { fill: #3B5BC7; }
+      .border { fill: none; stroke: #F59E0B; stroke-width: 3; }
+      .text { 
+        fill: #FFFFFF; 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        font-weight: 700;
+        font-size: 480px;
+        text-anchor: middle;
+        dominant-baseline: central;
+      }
+    </style>
   </defs>
-
-  <rect x="0" y="0" width="512" height="512" rx="100" ry="100" fill="#4169e1" filter="url(#shadow)"/>
-
-  <rect
-    x="1.5"
-    y="1.5"
-    width="509"
-    height="509"
-    rx="98.5"
-    ry="98.5"
-    fill="none"
-    stroke="#FFBF00"
-    stroke-width="3"
-  />
-
-  <!-- V1: extra-bold H for small-icon legibility (matches designer PNG) -->
-  <text
-    x="256"
-    y="264"
-    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
-    font-size="262"
-    font-weight="800"
-    fill="#FFFFFF"
-    text-anchor="middle"
-    dominant-baseline="central"
-  >
-    H
-  </text>
+  <!-- 圆角矩形背景 -->
+  <rect class="bg" x="1.5" y="1.5" width="1021" height="1021" rx="240" ry="240"/>
+  <!-- 琥珀色边框 -->
+  <rect class="border" x="1.5" y="1.5" width="1021" height="1021" rx="240" ry="240"/>
+  <!-- 居中文字 -->
+  <text class="text" x="512" y="512">Hi</text>
 </svg>

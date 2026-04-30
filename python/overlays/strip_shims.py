@@ -1,10 +1,17 @@
 """Make stripped Hermes subpackages importable as harmless no-ops.
 
-HermesDesk's Python bundle does not include `gateway`, `tui_gateway`,
-`acp_adapter`, `acp_registry`, or the RL helpers. Some upstream code
-imports these unconditionally from `hermes_cli/main.py` and other
-dispatchers. Rather than carry a fragile source patch, we register
-placeholder modules in `sys.modules`.
+This applies to the **Hermes web child** (`desktop_entrypoint.py`), not to the
+**separate messaging-gateway process** Tauri spawns (`python -m gateway.run`).
+
+The bundled tree **does ship** upstream ``gateway/`` sources on disk; we only
+prevent ``web_server`` / CLI dispatch paths from treating ``gateway.run.main``
+as the live gateway entry inside **that** interpreter — messaging adapters run in
+their **own** OS child with an unstubbed ``gateway.run``.
+
+Fully removed from the desktop **import surface** (AttributeError guides users
+upstream): ``tui_gateway``, ``acp_adapter``, ``acp_registry``, RL helpers, etc.
+Some upstream code imports symbols unconditionally; rather than fragile forks we
+register placeholders in ``sys.modules``.
 
 Two flavours of placeholder exist:
 

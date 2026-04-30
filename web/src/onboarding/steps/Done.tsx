@@ -23,15 +23,18 @@ export function Done() {
   async function openChat() {
     clearDraft();
     const loc = getLocale();
-    const langQ = loc === "en" || loc === "zh" ? `?hermesdesk_lang=${loc}` : "";
     try {
-      await invoke("cmd_open_hermes_dashboard", { shellLocale: loc });
+      await invoke("cmd_open_hermes_dashboard", { shellLocale: loc, path: null });
     } catch (e) {
       console.error(e);
       try {
         const port = await invoke<number | null>("cmd_get_hermes_port");
         if (port) {
-          window.location.replace(`http://127.0.0.1:${port}${langQ}`);
+          const u = new URL(`http://127.0.0.1:${port}/`);
+          if (loc === "en" || loc === "zh") {
+            u.searchParams.set("hermesdesk_lang", loc);
+          }
+          window.open(u.toString(), "_blank", "noopener,noreferrer");
         } else {
           window.location.replace("/");
         }

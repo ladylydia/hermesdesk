@@ -24,7 +24,7 @@
         "height": 760,
         "minWidth": 720,
         "minHeight": 520,
-        "decorations": true,
+        "decorations": false,
         "center": true,
         "resizable": true,
         "visible": false,
@@ -68,7 +68,8 @@
     },
     "windows": {
       "webviewInstallMode": {
-        "type": "embedBootstrapper"
+        "type": "downloadBootstrapper",
+        "silent": true
       },
       "wix": {
         "language": ["en-US"],

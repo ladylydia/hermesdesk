@@ -1,12 +1,8 @@
 ﻿import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
 import { AppScaffold } from "../components/AppScaffold";
-import { BrandMark } from "../components/BrandMark";
-import { getLocale } from "../lib/i18n-core";
 import { useI18n } from "../lib/i18n";
-import { LanguageToggle } from "../components/LanguageToggle";
-import { cn } from "../lib/cn";
 import {
   cmdChatSend,
   cmdDeleteSession,
@@ -25,6 +21,9 @@ import {
 import { ChatInput } from "./ChatInput";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatSidebar } from "./ChatSidebar";
+import { isFromOnboarding } from "../lib/chatLocationState";
+import { getAllowChatWithoutApi } from "../lib/apiKeyGate";
+import { ShellModal } from "../components/ShellModal";
 
 const LAST_SESSION_KEY = "hermesdesk.shell.chat.lastSessionId";
 
@@ -99,6 +98,9 @@ function rowsToUiMessages(rows: MessageRow[], sessionModel: string): UiMsg[] {
 export function ChatPage() {
   const { t } = useI18n();
   const nav = useNavigate();
+  const location = useLocation();
+  /** After wizard completion we skip the immediate `cmd_has_secret` check once (keyring/bridge timing). */
+  const skipKeyGuardOnceRef = useRef(false);
   const [hermesReady, setHermesReady] = useState(false);
   const [bootErr, setBootErr] = useState<string | null>(null);
   const [sessions, setSessions] = useState<SessionRow[]>([]);
@@ -112,6 +114,7 @@ export function ChatPage() {
   const [listLoading, setListLoading] = useState(true);
   const [sendErr, setSendErr] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<DeskAttachmentPayload[]>([]);
+  const [apiRequiredOpen, setApiRequiredOpen] = useState(false);
   const stopTurnRef = useRef(false);
   /** Session id for the in-flight request (state may not have flushed before Stop). */
   const inFlightSessionIdRef = useRef<string | null>(null);
@@ -219,24 +222,6 @@ export function ChatPage() {
     void loadThread(id);
   };
 
-  const openHermesConsole = useCallback(async () => {
-    const loc = getLocale();
-    try {
-      await invoke("cmd_open_hermes_dashboard", { shellLocale: loc });
-    } catch (e) {
-      console.error(e);
-      try {
-        const port = await cmdGetHermesPort();
-        if (port) {
-          const q = loc === "en" || loc === "zh" ? `?hermesdesk_lang=${loc}` : "";
-          window.open(`http://127.0.0.1:${port}${q}`, "_blank", "noopener,noreferrer");
-        }
-      } catch {
-        /* ignore */
-      }
-    }
-  }, []);
-
   const onDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!window.confirm(t("chat.confirmDelete"))) {
@@ -300,6 +285,16 @@ export function ChatPage() {
     const text = input.trim();
     const atts = pendingAttachments;
     if (sending || (!text && !atts.length)) {
+      return;
+    }
+    try {
+      const hasKey = await invoke<boolean>("cmd_has_secret");
+      if (!hasKey) {
+        setApiRequiredOpen(true);
+        return;
+      }
+    } catch {
+      setApiRequiredOpen(true);
       return;
     }
     setSending(true);
@@ -391,18 +386,27 @@ export function ChatPage() {
   };
 
   useEffect(() => {
-    const has = async () => {
+    if (isFromOnboarding(location.state)) {
+      skipKeyGuardOnceRef.current = true;
+      nav("/chat", { replace: true, state: {} });
+      return;
+    }
+    if (skipKeyGuardOnceRef.current) {
+      skipKeyGuardOnceRef.current = false;
+      return;
+    }
+    const gate = async () => {
       try {
         const ok = await invoke<boolean>("cmd_has_secret");
-        if (!ok) {
-          nav("/onboarding/welcome", { replace: true });
-        }
+        if (ok) return;
+        if (getAllowChatWithoutApi()) return;
+        nav("/onboarding/mode", { replace: true });
       } catch {
-        nav("/onboarding/welcome", { replace: true });
+        nav("/onboarding/mode", { replace: true });
       }
     };
-    void has();
-  }, [nav]);
+    void gate();
+  }, [nav, location.state]);
 
   if (bootErr) {
     return (
@@ -435,37 +439,32 @@ export function ChatPage() {
 
   return (
     <AppScaffold surface="chat" className="flex h-full min-h-0 flex-col">
-      <header
-        className={cn(
-          "flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200/80 bg-white px-4 py-2.5",
-          "dark:border-zinc-800 dark:bg-zinc-950"
-        )}
+      <ShellModal
+        open={apiRequiredOpen}
+        onClose={() => setApiRequiredOpen(false)}
+        title={t("chat.apiRequiredTitle")}
       >
-        <div className="flex min-w-0 items-center gap-3">
-          <span className="shrink-0 text-[15px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
-            {t("brand")}
-          </span>
-          <span className="h-3.5 w-px bg-zinc-200 dark:bg-zinc-700" aria-hidden />
-          <h1 className="truncate text-sm font-medium text-zinc-500 dark:text-zinc-400">{t("chat.title")}</h1>
-        </div>
-        <div className="flex shrink-0 items-center gap-0.5 sm:gap-1.5">
-          <BrandMark size="sm" />
+        <p className="text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">{t("chat.apiRequiredBody")}</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button
             type="button"
-            onClick={() => void openHermesConsole()}
-            className="rounded-full px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/80"
+            className="rounded-lg border border-zinc-300/90 px-4 py-2 text-sm dark:border-zinc-600"
+            onClick={() => setApiRequiredOpen(false)}
           >
-            {t("chat.openConsole")}
+            {t("chat.apiRequiredClose")}
           </button>
-          <Link
-            to="/settings"
-            className="rounded-full px-3 py-1.5 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800/80"
+          <button
+            type="button"
+            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900"
+            onClick={() => {
+              setApiRequiredOpen(false);
+              nav("/onboarding/mode", { replace: true });
+            }}
           >
-            {t("chat.openSettings")}
-          </Link>
-          <LanguageToggle />
+            {t("chat.apiRequiredGoSetup")}
+          </button>
         </div>
-      </header>
+      </ShellModal>
       <div className="flex min-h-0 flex-1">
         <ChatSidebar
           sessions={sessions}

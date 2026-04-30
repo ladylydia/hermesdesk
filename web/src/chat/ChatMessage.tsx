@@ -136,12 +136,16 @@ function AssistantMessageFooter({
   return (
     <div
       className={cn(
-        "mt-2 flex w-full min-w-0 flex-wrap items-center gap-2 border-t border-zinc-100 pt-1.5 text-[11px] dark:border-zinc-800",
+        "mt-2 flex w-full min-w-0 flex-wrap items-center gap-2 border-t border-zinc-200/80 pt-1.5 text-[11px] dark:border-zinc-600/60",
         timeStr ? "justify-between" : "justify-end"
       )}
     >
-      {timeStr ? <span className="shrink-0 font-mono tabular-nums text-zinc-500 dark:text-zinc-500">{timeStr}</span> : null}
-      <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-x-1 gap-y-1 font-mono text-zinc-500 sm:gap-x-1.5 dark:text-zinc-500">
+      {timeStr ? (
+        <span className="shrink-0 font-mono text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
+          {timeStr}
+        </span>
+      ) : null}
+      <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-x-1 gap-y-1 font-mono text-zinc-500 sm:gap-x-1.5 dark:text-zinc-400">
         <span className="shrink-0 min-w-0 break-all sm:break-normal">
           {model?.trim() ? `Hermes(${model.trim()})` : "Hermes"}
         </span>
@@ -163,17 +167,18 @@ export function ChatMessage({ role, text, model, timestamp }: ChatMessageProps) 
   return (
     <div className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
       <div
-        className={`max-w-[min(100%,42rem)] overflow-visible rounded-2xl px-4 py-2.5 ${
+        className={cn(
+          "max-w-[min(100%,42rem)] overflow-visible rounded-lg px-4 py-2.5 shadow-sm",
           isUser
-            ? "bg-zinc-800 text-white shadow-sm dark:bg-zinc-200 dark:text-zinc-900"
-            : "border border-zinc-200/90 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40"
-        }`}
+            ? "bg-sky-600 text-white dark:bg-[#3B5BC7] dark:text-white"
+            : "border border-zinc-200/90 bg-zinc-100/90 dark:border-zinc-700 dark:bg-zinc-800/90"
+        )}
       >
         {isUser ? (
           <>
-            <p className="whitespace-pre-wrap text-sm">{text}</p>
+            <p className="whitespace-pre-wrap text-sm leading-[1.6]">{text}</p>
             {timeStr && (
-              <div className="mt-1.5 text-right text-[11px] font-mono tabular-nums text-zinc-300 dark:text-zinc-500">
+              <div className="mt-1.5 text-right text-[11px] font-mono tabular-nums text-sky-100/90 dark:text-sky-200/80">
                 {timeStr}
               </div>
             )}

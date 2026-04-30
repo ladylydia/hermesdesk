@@ -1,0 +1,385 @@
+import { PROVIDERS } from "../../lib/providers";
+import type { Localized, OptionConfigField, PostPassSectionId, SetupCatalogOption } from "./optionTypes";
+
+const L = (zh: string, en: string) => ({ zh, en });
+
+/** Reusable field factory (all optional in wizard: empty = use Hermes / skip). */
+const F = (
+  id: string,
+  label: Localized,
+  placeholder: Localized,
+  kind: OptionConfigField["kind"] = "text",
+  optional = true
+): OptionConfigField => ({ id, label, placeholder, kind, optional });
+
+export const CATALOG_TTS: SetupCatalogOption[] = [
+  {
+    id: "nous_openai_tts",
+    name: L("Nous 订阅：托管 OpenAI TTS", "Nous subscription: managed OpenAI TTS"),
+    defaultHint: L("与订阅联动；可空置", "Tied to subscription; can leave empty"),
+  },
+  {
+    id: "edge",
+    name: L("Edge TTS", "Edge TTS"),
+    defaultHint: L("default：无额外 key", "Default: no extra key"),
+    isDefault: true,
+  },
+  {
+    id: "elevenlabs",
+    name: L("ElevenLabs", "ElevenLabs"),
+    defaultHint: L("ELEVENLABS_API_KEY", "ELEVENLABS_API_KEY"),
+    configFields: [
+      F(
+        "ELEVENLABS_API_KEY",
+        L("ELEVENLABS_API_KEY", "ELEVENLABS_API_KEY"),
+        L("在厂商控制台创建后粘贴", "From ElevenLabs console"),
+        "password"
+      ),
+    ],
+  },
+  {
+    id: "openai_tts",
+    name: L("OpenAI TTS", "OpenAI TTS"),
+    defaultHint: L("VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY", "VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY"),
+    configFields: [
+      F(
+        "VOICE_TOOLS_OPENAI_KEY",
+        L("VOICE_TOOLS_OPENAI_KEY（TTS 专用，可空则用 OPENAI_API_KEY）", "VOICE_TOOLS_OPENAI_KEY (optional if OPENAI_API_KEY set)"),
+        L("选填", "optional"),
+        "password"
+      ),
+    ],
+  },
+  {
+    id: "xai",
+    name: L("xAI TTS (Grok)", "xAI TTS (Grok)"),
+    defaultHint: L("XAI_API_KEY", "XAI_API_KEY"),
+    configFields: [F("XAI_API_KEY", L("XAI_API_KEY", "XAI_API_KEY"), L("xAI 控制台", "xAI console"), "password")],
+  },
+  {
+    id: "minimax",
+    name: L("MiniMax TTS", "MiniMax TTS"),
+    defaultHint: L("MINIMAX_API_KEY", "MINIMAX_API_KEY"),
+    configFields: [F("MINIMAX_API_KEY", L("MINIMAX_API_KEY", "MINIMAX_API_KEY"), L("选填", "optional"), "password")],
+  },
+  {
+    id: "mistral_tts",
+    name: L("Mistral Voxtral TTS", "Mistral Voxtral TTS"),
+    defaultHint: L("MISTRAL_API_KEY", "MISTRAL_API_KEY"),
+    configFields: [F("MISTRAL_API_KEY", L("MISTRAL_API_KEY", "MISTRAL_API_KEY"), L("选填", "optional"), "password")],
+  },
+  {
+    id: "gemini_tts",
+    name: L("Google Gemini TTS", "Google Gemini TTS"),
+    defaultHint: L("GEMINI_API_KEY / GOOGLE_API_KEY", "GEMINI_API_KEY or GOOGLE_API_KEY"),
+    configFields: [F("GEMINI_API_KEY", L("GEMINI_API_KEY", "GEMINI_API_KEY"), L("AI Studio 等", "e.g. AI Studio"), "password")],
+  },
+  {
+    id: "neutts",
+    name: L("NeuTTS（本机）", "NeuTTS (on-device)"),
+    defaultHint: L("本机包与系统依赖，可空置后装", "Local packages; can skip here"),
+  },
+];
+
+export const CATALOG_TERMINAL: SetupCatalogOption[] = [
+  {
+    id: "local",
+    name: L("Local", "Local"),
+    defaultHint: L("default：local", "default: local"),
+    isDefault: true,
+    configFields: [
+      F(
+        "terminal_cwd_messaging",
+        L("消息会话工作目录（可空）", "Messaging working directory (optional)"),
+        L("例如用户主目录路径", "e.g. home path"),
+        "text"
+      ),
+    ],
+  },
+  {
+    id: "docker",
+    name: L("Docker", "Docker"),
+    defaultHint: L("TERMINAL_DOCKER_IMAGE 等", "TERMINAL_DOCKER_IMAGE, …"),
+    configFields: [
+      F(
+        "TERMINAL_DOCKER_IMAGE",
+        L("TERMINAL_DOCKER_IMAGE", "TERMINAL_DOCKER_IMAGE"),
+        L("例：nikolaik/python-nodejs:…", "e.g. nikolaik/…"),
+        "text"
+      ),
+    ],
+  },
+  {
+    id: "modal",
+    name: L("Modal", "Modal"),
+    defaultHint: L("MODAL_TOKEN_ID / MODAL_TOKEN_SECRET 等", "MODAL_TOKEN_ID / MODAL_TOKEN_SECRET, …"),
+    configFields: [
+      F("MODAL_TOKEN_ID", L("MODAL_TOKEN_ID", "MODAL_TOKEN_ID"), L("Modal 设置页", "Modal settings"), "password"),
+      F("MODAL_TOKEN_SECRET", L("MODAL_TOKEN_SECRET", "MODAL_TOKEN_SECRET"), L("与 ID 成对", "with token id"), "password"),
+    ],
+  },
+  {
+    id: "daytona",
+    name: L("Daytona", "Daytona"),
+    defaultHint: L("DAYTONA_API_KEY", "DAYTONA_API_KEY"),
+    configFields: [F("DAYTONA_API_KEY", L("DAYTONA_API_KEY", "DAYTONA_API_KEY"), L("Daytona 控制台", "Daytona console"), "password")],
+  },
+  {
+    id: "ssh",
+    name: L("SSH 远端", "SSH remote"),
+    defaultHint: L("TERMINAL_SSH_HOST / USER / …", "TERMINAL_SSH_HOST / USER / …"),
+    configFields: [
+      F("TERMINAL_SSH_HOST", L("TERMINAL_SSH_HOST", "TERMINAL_SSH_HOST"), L("主机名或 IP", "hostname or IP"), "text"),
+      F("TERMINAL_SSH_USER", L("TERMINAL_SSH_USER", "TERMINAL_SSH_USER"), L("SSH 用户", "SSH user"), "text"),
+      F("TERMINAL_SSH_PORT", L("TERMINAL_SSH_PORT（可空=22）", "TERMINAL_SSH_PORT (empty=22)"), L("22", "22"), "text"),
+    ],
+  },
+  {
+    id: "singularity",
+    name: L("Singularity/Apptainer", "Singularity/Apptainer"),
+    defaultHint: L("TERMINAL_SINGULARITY_IMAGE 等", "TERMINAL_SINGULARITY_IMAGE, …"),
+    configFields: [
+      F(
+        "TERMINAL_SINGULARITY_IMAGE",
+        L("TERMINAL_SINGULARITY_IMAGE", "TERMINAL_SINGULARITY_IMAGE"),
+        L("例：docker://…", "e.g. docker://…"),
+        "text"
+      ),
+    ],
+  },
+];
+
+export const CATALOG_GATEWAY: SetupCatalogOption[] = [
+  {
+    id: "tg",
+    name: L("Telegram", "Telegram"),
+    defaultHint: L("主 Token + 可选 home 频道", "bot token + optional home channel"),
+    configFields: [
+      F("TELEGRAM_BOT_TOKEN", L("TELEGRAM_BOT_TOKEN", "TELEGRAM_BOT_TOKEN"), L("@BotFather", "@BotFather"), "password"),
+      F("TELEGRAM_HOME_CHANNEL", L("TELEGRAM_HOME_CHANNEL（可空）", "TELEGRAM_HOME_CHANNEL (optional)"), L("频道 id", "channel id"), "text"),
+    ],
+  },
+  {
+    id: "discord",
+    name: L("Discord", "Discord"),
+    defaultHint: L("DISCORD_BOT_TOKEN", "DISCORD_BOT_TOKEN"),
+    configFields: [
+      F("DISCORD_BOT_TOKEN", L("DISCORD_BOT_TOKEN", "DISCORD_BOT_TOKEN"), L("Bot Token", "Bot token"), "password"),
+      F("DISCORD_HOME_CHANNEL", L("DISCORD_HOME_CHANNEL（可空）", "DISCORD_HOME_CHANNEL (optional)"), L("可空", "optional"), "text"),
+    ],
+  },
+  {
+    id: "slack",
+    name: L("Slack", "Slack"),
+    defaultHint: L("SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"),
+    configFields: [F("SLACK_BOT_TOKEN", L("SLACK_BOT_TOKEN", "SLACK_BOT_TOKEN"), L("OAuth Bot Token", "bot token"), "password")],
+  },
+  {
+    id: "signal",
+    name: L("Signal", "Signal"),
+    defaultHint: L("SIGNAL_HTTP_URL 等", "SIGNAL_HTTP_URL, …"),
+    configFields: [F("SIGNAL_HTTP_URL", L("SIGNAL_HTTP_URL 或网桥基址", "SIGNAL_HTTP_URL or bridge base"), L("选填", "optional"), "url")],
+  },
+  {
+    id: "email",
+    name: L("Email", "Email"),
+    defaultHint: L("EMAIL_ADDRESS 等", "EMAIL_ADDRESS, …"),
+    configFields: [F("EMAIL_ADDRESS", L("EMAIL_ADDRESS", "EMAIL_ADDRESS"), L("接收/发件用配置见文档", "see docs"), "text")],
+  },
+  {
+    id: "sms",
+    name: L("SMS (Twilio)", "SMS (Twilio)"),
+    defaultHint: L("TWILIO_ACCOUNT_SID 等", "TWILIO_*"),
+    configFields: [F("TWILIO_ACCOUNT_SID", L("TWILIO_ACCOUNT_SID", "TWILIO_ACCOUNT_SID"), L("选填", "optional"), "text")],
+  },
+  {
+    id: "matrix",
+    name: L("Matrix", "Matrix"),
+    defaultHint: L("MATRIX_ACCESS_TOKEN 或 MATRIX_PASSWORD", "MATRIX_ACCESS_TOKEN or MATRIX_PASSWORD"),
+    configFields: [
+      F("MATRIX_ACCESS_TOKEN", L("MATRIX_ACCESS_TOKEN", "MATRIX_ACCESS_TOKEN"), L("可二选一/见文档", "or password flow"), "password"),
+    ],
+  },
+  {
+    id: "mattermost",
+    name: L("Mattermost", "Mattermost"),
+    defaultHint: L("MATTERMOST_TOKEN", "MATTERMOST_TOKEN"),
+    configFields: [F("MATTERMOST_TOKEN", L("MATTERMOST_TOKEN", "MATTERMOST_TOKEN"), L("选填", "optional"), "password")],
+  },
+  {
+    id: "whatsapp",
+    name: L("WhatsApp", "WhatsApp"),
+    defaultHint: L("WHATSAPP_* 系列", "WHATSAPP_*"),
+    configFields: [F("WHATSAPP_ENABLED", L("WHATSAPP_ENABLED（可 true/false）", "WHATSAPP_ENABLED (e.g. true)"), L("可空", "optional"), "text")],
+  },
+  {
+    id: "ding",
+    name: L("钉钉", "DingTalk"),
+    defaultHint: L("DINGTALK_CLIENT_ID + SECRET", "DINGTALK_CLIENT_ID + SECRET"),
+    configFields: [
+      F("DINGTALK_CLIENT_ID", L("DINGTALK_CLIENT_ID", "DINGTALK_CLIENT_ID"), L("选填", "optional"), "text"),
+      F("DINGTALK_CLIENT_SECRET", L("DINGTALK_CLIENT_SECRET", "DINGTALK_CLIENT_SECRET"), L("选填", "optional"), "password"),
+    ],
+  },
+  {
+    id: "feishu",
+    name: L("飞书 / Lark", "Feishu / Lark"),
+    defaultHint: L("扫码一键创建并绑定", "Scan to create & bind"),
+    configUi: "feishu_route_c",
+  },
+  {
+    id: "wecom",
+    name: L("企业微信 机器人", "WeCom bot"),
+    defaultHint: L("WECOM_BOT_ID + SECRET", "WECOM_BOT_ID + SECRET"),
+    configFields: [
+      F("WECOM_BOT_ID", L("WECOM_BOT_ID", "WECOM_BOT_ID"), L("选填", "optional"), "text"),
+      F("WECOM_SECRET", L("WECOM_SECRET", "WECOM_SECRET"), L("选填", "optional"), "password"),
+    ],
+  },
+  {
+    id: "wecom_cb",
+    name: L("企业微信 回调", "WeCom callback"),
+    defaultHint: L("WECOM_CALLBACK_*", "WECOM_CALLBACK_*"),
+    configFields: [
+      F("WECOM_CALLBACK_CORP_ID", L("WECOM_CALLBACK_CORP_ID", "WECOM_CALLBACK_CORP_ID"), L("选填", "optional"), "text"),
+      F("WECOM_CALLBACK_CORP_SECRET", L("WECOM_CALLBACK_CORP_SECRET", "WECOM_CALLBACK_CORP_SECRET"), L("选填", "optional"), "password"),
+      F("WECOM_CALLBACK_AGENT_ID", L("WECOM_CALLBACK_AGENT_ID（可空）", "WECOM_CALLBACK_AGENT_ID (optional)"), L("选填", "optional"), "text"),
+    ],
+  },
+  {
+    id: "weixin",
+    name: L("个人微信", "WeChat personal"),
+    defaultHint: L("本机路线 C：扫码登录", "Route C: QR login in this app"),
+    configUi: "weixin_route_c",
+  },
+  {
+    id: "bb",
+    name: L("BlueBubbles (iMessage)", "BlueBubbles (iMessage)"),
+    defaultHint: L("BLUEBUBBLES_SERVER_URL 等", "BLUEBUBBLES_*"),
+    configFields: [
+      F("BLUEBUBBLES_SERVER_URL", L("BLUEBUBBLES_SERVER_URL", "BLUEBUBBLES_SERVER_URL"), L("本机/局域网 URL", "local URL"), "url"),
+    ],
+  },
+  {
+    id: "qq",
+    name: L("QQ Bot", "QQ Bot"),
+    defaultHint: L("扫码绑定机器人", "Scan to bind bot"),
+    configUi: "qqbot_route_c",
+  },
+  {
+    id: "webhook",
+    name: L("Webhooks (GitHub/GitLab/…)", "Webhooks"),
+    defaultHint: L("WEBHOOK_PORT=8644 等", "WEBHOOK_PORT=8644, …"),
+    configFields: [
+      F("WEBHOOK_PORT", L("WEBHOOK_PORT", "WEBHOOK_PORT"), L("默认 8644", "default 8644"), "text"),
+      F("WEBHOOK_SECRET", L("WEBHOOK_SECRET（HMAC 等）", "WEBHOOK_SECRET (HMAC)"), L("选填", "optional"), "password"),
+    ],
+  },
+];
+
+export const CATALOG_TOOLS: SetupCatalogOption[] = [
+  {
+    id: "unified",
+    name: L("统一 tools 流程", "Unified `hermes tools` flow"),
+    defaultHint: L("按 CLI 分步填各厂商 Key", "Per-provider keys like CLI"),
+    isDefault: true,
+    configFields: [
+      F("FIRECRAWL_API_KEY", L("FIRECRAWL_API_KEY（可空）", "FIRECRAWL_API_KEY (optional)"), L("选填", "optional"), "password"),
+      F("BROWSERBASE_API_KEY", L("BROWSERBASE_API_KEY（可空）", "BROWSERBASE_API_KEY (optional)"), L("选填", "optional"), "password"),
+    ],
+  },
+  { id: "toolset_default", name: L("toolsets 含 hermes-cli", "toolsets incl. hermes-cli"), defaultHint: L("默认", "default") },
+  { id: "nous", name: L("Nous 托管能力", "Nous managed"), defaultHint: L("随订阅", "subscription") },
+];
+
+export const CATALOG_AGENT: SetupCatalogOption[] = [
+  {
+    id: "max_turns",
+    name: L("max_turns / 迭代", "max_turns / iterations"),
+    defaultHint: L("default：90", "default: 90"),
+    configFields: [
+      F("HERMES_MAX_ITERATIONS", L("HERMES_MAX_ITERATIONS", "HERMES_MAX_ITERATIONS"), L("如 90", "e.g. 90"), "text"),
+    ],
+  },
+  {
+    id: "tool_progress",
+    name: L("display.tool_progress", "display.tool_progress"),
+    defaultHint: L("default：all", "default: all"),
+    configFields: [
+      F(
+        "display_tool_progress",
+        L("工具进度：off / new / all / verbose", "off | new | all | verbose"),
+        L("可空=不改", "empty = leave"),
+        "text"
+      ),
+    ],
+  },
+  {
+    id: "compression",
+    name: L("compression.threshold", "compression.threshold"),
+    defaultHint: L("0.50", "0.50"),
+    configFields: [F("COMPRESSION_THRESHOLD", L("压缩阈值 0.5–0.95", "Compression threshold 0.5–0.95"), L("如 0.5", "e.g. 0.5"), "text")],
+  },
+  {
+    id: "session_reset",
+    name: L("session_reset", "session_reset"),
+    defaultHint: L("mode both + idle 1440min + at_hour 4", "default bundle in config"),
+  },
+  {
+    id: "reasoning",
+    name: L("agent.reasoning_effort", "agent.reasoning_effort"),
+    defaultHint: L("因模型而异", "model-specific"),
+  },
+  {
+    id: "apply_defaults",
+    name: L("推荐：与 Quick 相同的整包默认", "Recommended: same bundle as Quick defaults"),
+    defaultHint: L("max_turns、tool_progress、compression、session_reset 等", "max_turns, tool progress, compression, session reset, …"),
+    isDefault: true,
+  },
+];
+
+export const CATALOG_BRAIN_CARDS: SetupCatalogOption[] = [
+  {
+    id: "starter",
+    name: L("免费入门（OpenRouter）", "Free starter (OpenRouter)"),
+    defaultHint: L("同 OpenRouter 卡", "OpenRouter path"),
+    isDefault: true,
+  },
+  {
+    id: "own",
+    name: L("我有自己的API（OpenAI 兼容）", "My own API (OpenAI-compatible)"),
+    defaultHint: L("在下一页填 Base URL + 模型 + API Key", "Base URL + model + key on next page"),
+  },
+];
+
+export function getProviderRegistryOptions(): SetupCatalogOption[] {
+  return PROVIDERS.map((p) => {
+    const host = p.host.trim() ? p.host : "—";
+    return {
+      id: `reg_${p.id}`,
+      name: L(p.label, p.label),
+      defaultHint: L(`host: ${host}`, `host: ${host}`),
+    };
+  });
+}
+
+export const CATALOG_API_KEY: SetupCatalogOption[] = [
+  {
+    id: "main",
+    name: L("本页主表单", "Main form on this page"),
+    defaultHint: L("主模型 API Key 仅进系统凭据、不落 session", "Key goes to OS vault; not in session store"),
+  },
+  {
+    id: "other_sections",
+    name: L("Telegram / 其它 TTS 等", "Telegram, other TTS, …"),
+    defaultHint: L("在对应向导页的「配置」里填（可全空）", "Use per-section “Configure” tables (all optional)"),
+  },
+];
+
+export const CATALOG_BY_SECTION: Record<PostPassSectionId, SetupCatalogOption[]> = {
+  tts: CATALOG_TTS,
+  terminal: CATALOG_TERMINAL,
+  gateway: CATALOG_GATEWAY,
+  tools: CATALOG_TOOLS,
+  agent: CATALOG_AGENT,
+};

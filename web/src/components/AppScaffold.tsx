@@ -17,8 +17,8 @@ export function AppScaffold({ children, className, variant = "full", surface = "
       className={cn(
         "min-h-full w-full text-zinc-900 dark:text-zinc-100",
         surface === "chat"
-          ? "bg-white dark:bg-zinc-950"
-          : "bg-gradient-to-br from-zinc-100/90 via-white to-zinc-50/85 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950",
+          ? "bg-zinc-50 dark:bg-[#0F172A]"
+          : "bg-gradient-to-br from-zinc-100/90 via-white to-zinc-50/85 dark:from-zinc-950 dark:via-[#0F172A] dark:to-zinc-950",
         variant === "narrow" && "flex flex-col",
         className
       )}

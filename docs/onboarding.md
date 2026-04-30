@@ -4,7 +4,9 @@ The non-pro promise is "two minutes from `.msi` to first reply".
 Every screen below is calibrated for someone who has never heard
 "API key", "model", or "endpoint".
 
-## The five screens
+## The five screens (minimal LLM-only path)
+
+Extended onboarding may append **optional sections** (e.g. messaging channels); progress UI adapts — see **§ Extended setup** below.
 
 ```
 1. Welcome      "Hi there. Two minutes."             1 button
@@ -21,29 +23,35 @@ Total clicks for the happy path: **5 clicks + 1 paste**.
 - Never use the word "API". Use "access pass" or "long string".
 - Never use "model" until the user is in chat. Use "brain".
 - Never show a settings dump. If a value has a sensible default,
-  hide it; expose under Settings only.
+hide it; expose under Settings only.
 - Never make the user choose between technical providers up front.
-  Default to OpenRouter (one key, many models, free tier exists).
+Default to OpenRouter (one key, many models, free tier exists).
 
 ## Visual rules
 
 - One H1 per screen, max two paragraphs of body text.
 - Primary action is one full-width button. No secondary buttons unless
-  navigating back.
-- Progress dots top-right show 5 segments; the current segment grows.
+navigating back.
+- Progress dots top-right show **segment count from the active flow** (minimal LLM-only path vs extended setup with optional messaging sections); the current segment grows.
 - Light + dark mode auto-follow the OS theme; never offer a theme
-  picker in onboarding.
+picker in onboarding.
+
+## Extended setup (optional messaging)
+
+Beyond the minimal **brain / access pass / vibe** path, the wizard may include **optional sections** (e.g. messaging gateway channels — Weixin, QQ Bot, Feishu/Lark, Telegram). Implementation lives under [`web/src/onboarding/`](../web/src/onboarding/) (`SetupMode`, `flowConfig`, `setupCatalog`, section placeholders). Users can skip channels they do not need; credentials land in **`hermes-home/.env`** and **Settings → Messaging gateway** controls the long-running **`gateway.run`** process. Product overview: [`gateway-desk-weixin-strategy.md`](gateway-desk-weixin-strategy.md), [`architecture.md`](architecture.md).
 
 ## Error wording
 
-| Scenario                   | What we say                                                              |
-|----------------------------|--------------------------------------------------------------------------|
-| Empty paste box            | "Please paste your access pass."                                         |
-| Wrong-shaped key           | "That doesn't look like a {provider} pass. They usually start with X."   |
-| 401 / 403                  | "That pass didn't work. Double-check you copied the whole thing."        |
-| Network down               | "Couldn't reach {provider}. Check your internet connection."             |
-| Provider 5xx               | "{provider} answered 502. Try again in a moment."                        |
-| Save succeeded             | (silent — advance immediately)                                           |
+
+| Scenario         | What we say                                                            |
+| ---------------- | ---------------------------------------------------------------------- |
+| Empty paste box  | "Please paste your access pass."                                       |
+| Wrong-shaped key | "That doesn't look like a {provider} pass. They usually start with X." |
+| 401 / 403        | "That pass didn't work. Double-check you copied the whole thing."      |
+| Network down     | "Couldn't reach {provider}. Check your internet connection."           |
+| Provider 5xx     | "{provider} answered 502. Try again in a moment."                      |
+| Save succeeded   | (silent — advance immediately)                                         |
+
 
 ## Accessibility
 
@@ -51,7 +59,7 @@ Total clicks for the happy path: **5 clicks + 1 paste**.
 - Step heading is the first focusable element on each screen.
 - Inputs have explicit `<label>` (in `GetAccessPass.tsx`).
 - Color is never the only signal: the recommended card uses both color
-  AND a "Recommended" badge.
+AND a "Recommended" badge.
 - Minimum hit target 44px.
 
 ## Telemetry

@@ -8,6 +8,7 @@ use tauri::AppHandle;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::{Child, Command};
 
+#[derive(Clone)]
 pub struct SpawnConfig {
     pub bundle_dir: PathBuf,
     pub data_dir: PathBuf,
@@ -87,6 +88,9 @@ impl Supervisor {
             .env_remove("HTTPS_PROXY").env_remove("https_proxy")
             .env_remove("ALL_PROXY").env_remove("all_proxy")
             .env_remove("NO_PROXY").env_remove("no_proxy")
+            // Dev shells often set PYTHONPATH to the git ``hermes/`` tree; that can shadow
+            // the bundle's ``site-packages`` (wrong/missing ``yaml``, ``fastapi``, …).
+            .env_remove("PYTHONPATH")
             .env("NO_PROXY", "127.0.0.1,localhost,::1")
             .stdin(Stdio::null())
             .stdout(Stdio::piped())

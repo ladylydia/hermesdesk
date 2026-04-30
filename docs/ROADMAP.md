@@ -1,47 +1,33 @@
 # HermesDesk roadmap
 
-**Last updated:** 2026-04-21
+**Last updated:** 2026-04-30
 
 This file tracks **intentional, product-level** work. Bugfix triage lives in issues and changelogs (for example `CHANGES_*.md` in the repo root).
 
 ---
 
-## 1. Chat UI + backend session / gateway (tracked separately)
+## 1. Shell chat + messaging gateway (**shipped baseline**)
 
-**Status:** not started (planning)
+**Status:** baseline delivered (ongoing polish)
 
-**Problem statement**
+HermesDesk today includes:
 
-HermesDesk ships a **Tauri shell** (`web/`) for onboarding and settings, then loads **Hermes’ web app** (served by embedded Python) in WebView2. The upstream Hermes surface includes **CLI, TUI, gateway, and web**; the desk bundle **strips** several entry points (see `python/overlays/strip_shims.py`). What remains in the local HTTP UI is primarily an **admin / status / management** experience. **End-user chat in the window** is therefore a **separate product track**: it is not implied by “seeing the dashboard” and should not be folded into unrelated fixes (onboarding, API validation, or navigation timing).
+- **Dedicated shell chat** at **`/chat`** (`web/src/chat/*`), backed by Tauri **`invoke`** commands that proxy to the embedded Hermes loopback (`tauri/src/chat.rs`). Sessions list / messages / stop mirror Hermes desk APIs.
+- **Messaging gateway** as a **second supervised Python process** (`python -m gateway.run`, `tauri/src/gateway_supervisor.rs`), auto-start optional on cold launch when `hermes-home/.env` contains messaging credentials, manual controls in Settings.
+- **Onboarding / Settings UX** for **Weixin**, **QQ Bot**, **Feishu/Lark**, and **Telegram** (token), plus pairing helpers where Hermes requires them (`pairing.rs`, shell blocks).
 
-**In scope (this track)**
+The **`strip_shims`** overlay still stubs **`gateway.run.main`** inside the **Hermes web child** so the dashboard never accidentally hosts the gateway entrypoint; the **real** gateway module loads only in the **separate** gateway OS process. See `docs/architecture.md` §Process model.
 
-- A **dedicated chat experience** in the product (where it lives: shell vs Hermes web — TBD).
-- A **session model** that matches that UI (create / list / resume conversation, error surfaces).
-- A **runtime path for model traffic** consistent with the bundle: e.g. **restore or replace gateway**-style behavior, or an explicit **HTTP/WS contract** the UI calls into embedded Python — chosen and documented in `docs/architecture.md` when the track starts.
+**Remaining themes on this track** (examples — not ordered backlog):
 
-**Explicitly out of scope for this track (unless revised later)**
-
-- Rebranding the existing Hermes web app as “chat” without a product decision.
-- One-off hacks that only open URLs without a supported chat stack.
-
-**Candidate directions** (pick one in design; may combine)
-
-| Direction | Notes |
-| --- | --- |
-| **Re-enable gateway / TUI path (partial unpick from strip)** | Brings upstream patterns closer; Windows and packaging impact need a pass. |
-| **New web chat in Tauri shell** | Full control of UX; must define API against embedded Python. |
-| **New web chat under Hermes `hermes/web/`** | Aligns with existing serve model; still needs session + transport design. |
-
-**Dependencies**
-
-- Stable **BYO key / provider** and **onboarding** story (separate work).
-- Clear **security** boundary for any new loopback or WS surface (see `docs/safety.md`).
+- UX polish for `/chat` (streaming surfaces, attachments edge cases, error copy).
+- Keep gateway flows aligned when **`hermes/`** submodule moves (re-run `python/build_bundle.ps1`; watch upstream adapter breaks).
+- Optional deeper Hermes-web parity only where product asks for it — **without** folding unrelated onboarding fixes into chat regressions.
 
 **References**
 
-- `CHANGES_2026-04-22.md` — current limitation: admin UI vs chat; gateway stripped.
-- `docs/architecture.md` — system diagram and component boundaries.
+- `docs/architecture.md` — processes, `/chat` proxy, gateway boundaries.
+- `README.md` — user-facing gateway summary.
 
 ---
 
@@ -55,6 +41,8 @@ HermesDesk ships a **Tauri shell** (`web/`) for onboarding and settings, then lo
 
 ## 简体中文摘要
 
-**「聊天界面 + 后端会话/网关」** 在路线图中作为 **独立事项** 跟踪：当前桌面包对 Hermes 做了裁剪，本地 Web 更偏管理/状态，**窗口内可对话** 需要单独的产品与工程方案（恢复网关 / 壳内新聊天页 / 在 Hermes 前端扩展等），**不应**与 onboarding、API 校验等短期问题混为同一类「修 bug」。
+**壳内 `/chat` 与消息网关** 已在当前桌面产品中落地：`invoke` → Rust → Hermes loopback；网关为独立 **`gateway.run`** 子进程；微信 / QQ / 飞书·Lark / Telegram 的配置入口在引导与设置中。**strip_shims** 仅阻止「Hermes Web 主进程」误跑网关入口，与第二条网关进程并存——详见 **`docs/architecture.md`**。
+
+路线图剩余部分多为体验打磨、与上游子模块同步及通用桌面工程质量项；不要把 onboarding / Keyring 等问题与 chat / gateway 缺陷混成同一类「顺带修」。
 
 上方英文小节为正式范围说明；本文件与 `docs/architecture.md` 随实现更新。

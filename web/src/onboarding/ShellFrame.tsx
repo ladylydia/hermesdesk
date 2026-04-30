@@ -1,18 +1,21 @@
-import { ReactNode } from "react";
-import { useLocation } from "react-router-dom";
+import { ReactNode, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AppScaffold } from "../components/AppScaffold";
-import { BrandMark } from "../components/BrandMark";
-import { LanguageToggle } from "../components/LanguageToggle";
 import { useI18n } from "../lib/i18n";
+import { useDraft } from "../lib/store";
 import { cn } from "../lib/cn";
-
-const STEPS = ["welcome", "brain", "pass", "vibe", "done"] as const;
+import { getBackPath, getIndexInFlow, getStepsForMode, slugFromPathname, type ShellWizardStepId } from "./flowConfig";
 
 export function ShellFrame({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const loc = useLocation();
-  const current = loc.pathname.split("/").pop() || "welcome";
-  const idx = Math.max(0, STEPS.indexOf(current as (typeof STEPS)[number]));
+  const nav = useNavigate();
+  const draft = useDraft();
+
+  const slug = useMemo((): ShellWizardStepId => slugFromPathname(loc.pathname), [loc.pathname]);
+  const stepList = getStepsForMode(draft.setupMode);
+  const idx = getIndexInFlow(slug, draft.setupMode);
+  const back = getBackPath(slug, draft.setupMode);
 
   return (
     <AppScaffold className="flex h-full w-full flex-col">
@@ -23,13 +26,31 @@ export function ShellFrame({ children }: { children: ReactNode }) {
         )}
       >
         <div className="mx-auto flex max-w-[var(--hd-content-max)] items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5 font-semibold tracking-tight">
-            <BrandMark size="sm" />
-            <span className="truncate">{t("brand")}</span>
+          <div
+            className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3"
+            aria-label={t("brand")}
+          >
+            {back ? (
+              <button
+                type="button"
+                onClick={() => nav(back)}
+                className="shrink-0 rounded-md px-2 py-1 text-sm text-zinc-600 transition hover:bg-zinc-200/50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/80 dark:hover:text-zinc-100"
+              >
+                {slug === "mode" ? t("onboarding.backToChat") : t("onboarding.back")}
+              </button>
+            ) : null}
+            <img
+              src="/logo.svg"
+              alt=""
+              width={24}
+              height={24}
+              className="h-6 w-6 shrink-0 object-contain dark:opacity-95"
+              decoding="async"
+              aria-hidden
+            />
           </div>
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <LanguageToggle />
-            <ProgressDots index={idx} total={STEPS.length} />
+          <div className="flex shrink-0 items-center sm:gap-3">
+            <ProgressDots index={idx} total={stepList.length} />
           </div>
         </div>
       </header>
