@@ -1,0 +1,315 @@
+diff --git a/gateway/config.py b/gateway/config.py
+index 7d4d259ca..23dc811c5 100644
+--- a/gateway/config.py
++++ b/gateway/config.py
+@@ -382,7 +382,7 @@ class GatewayConfig:
+ 
+     # Session isolation in shared chats
+     group_sessions_per_user: bool = True  # Isolate group/channel sessions per participant when user IDs are available
+-    thread_sessions_per_user: bool = False  # When False (default), threads are shared across all participants
++    thread_sessions_per_user: bool = True  # Isolate thread/topic sessions per participant (default safe)
+ 
+     # Unauthorized DM policy
+     unauthorized_dm_behavior: str = "pair"  # "pair" or "ignore"
+diff --git a/gateway/platforms/dingtalk.py b/gateway/platforms/dingtalk.py
+index 3037e402b..2a9a00cf3 100644
+--- a/gateway/platforms/dingtalk.py
++++ b/gateway/platforms/dingtalk.py
+@@ -351,7 +351,7 @@ class DingTalkAdapter(BasePlatformAdapter):
+             if isinstance(configured, str):
+                 return configured.lower() in ("true", "1", "yes", "on")
+             return bool(configured)
+-        return os.getenv("DINGTALK_REQUIRE_MENTION", "false").lower() in ("true", "1", "yes", "on")
++        return os.getenv("DINGTALK_REQUIRE_MENTION", "true").lower() not in ("false", "0", "no", "off")
+ 
+     def _dingtalk_free_response_chats(self) -> Set[str]:
+         raw = self.config.extra.get("free_response_chats")
+diff --git a/gateway/platforms/feishu.py b/gateway/platforms/feishu.py
+index 718f01e99..48bff8a4a 100644
+--- a/gateway/platforms/feishu.py
++++ b/gateway/platforms/feishu.py
+@@ -1520,6 +1520,23 @@ class FeishuAdapter(BasePlatformAdapter):
+             )
+             return False
+ 
++        # Webhook mode security: warn when signature verification is not
++        # configured (encrypt_key and verification_token are optional but
++        # strongly recommended for production webhook endpoints).
++        if self._connection_mode == "webhook":
++            if not self._encrypt_key:
++                logger.warning(
++                    "[Feishu] SECURITY: Webhook mode is active but FEISHU_ENCRYPT_KEY "
++                    "is not set. Webhook requests will NOT be cryptographically "
++                    "verified. Set FEISHU_ENCRYPT_KEY in your .env file."
++                )
++            if not self._verification_token:
++                logger.warning(
++                    "[Feishu] SECURITY: Webhook mode is active but FEISHU_VERIFICATION_TOKEN "
++                    "is not set. The verification token check is skipped, allowing any "
++                    "POST to the webhook endpoint. Set FEISHU_VERIFICATION_TOKEN in your .env file."
++                )
++
+         try:
+             self._app_lock_identity = self._app_id
+             acquired, existing = acquire_scoped_lock(
+diff --git a/gateway/platforms/telegram.py b/gateway/platforms/telegram.py
+index 23fa8c696..ce3bd6922 100644
+--- a/gateway/platforms/telegram.py
++++ b/gateway/platforms/telegram.py
+@@ -2547,7 +2547,7 @@ class TelegramAdapter(BasePlatformAdapter):
+             if isinstance(configured, str):
+                 return configured.lower() in ("true", "1", "yes", "on")
+             return bool(configured)
+-        return os.getenv("TELEGRAM_REQUIRE_MENTION", "false").lower() in ("true", "1", "yes", "on")
++        return os.getenv("TELEGRAM_REQUIRE_MENTION", "true").lower() not in ("false", "0", "no", "off")
+ 
+     def _telegram_free_response_chats(self) -> set[str]:
+         raw = self.config.extra.get("free_response_chats")
+diff --git a/gateway/platforms/webhook.py b/gateway/platforms/webhook.py
+index 34e2dfa2c..a91a73997 100644
+--- a/gateway/platforms/webhook.py
++++ b/gateway/platforms/webhook.py
+@@ -31,6 +31,7 @@ import hashlib
+ import hmac
+ import json
+ import logging
++import os
+ import re
+ import subprocess
+ import time
+@@ -327,6 +328,26 @@ class WebhookAdapter(BasePlatformAdapter):
+                     {"error": "Invalid signature"}, status=401
+                 )
+ 
++            # Timestamp-based replay protection.  When the sender includes
++            # X-Webhook-Timestamp (Unix seconds), reject requests older than
++            # the configured tolerance (default 5 min) to prevent replay attacks.
++            _ts_header = request.headers.get("X-Webhook-Timestamp", "")
++            if _ts_header:
++                try:
++                    _ts_value = int(_ts_header.strip())
++                    _tolerance = int(os.environ.get("WEBHOOK_REPLAY_TOLERANCE_SECONDS", "300"))
++                    if abs(time.time() - _ts_value) > _tolerance:
++                        logger.warning(
++                            "[webhook] Replayed/expired request for route %s "
++                            "(timestamp %s, now %s, tolerance %ss)",
++                            route_name, _ts_value, int(time.time()), _tolerance,
++                        )
++                        return web.json_response(
++                            {"error": "Request timestamp out of tolerance"}, status=401
++                        )
++                except (ValueError, TypeError):
++                    pass  # Malformed timestamp — fall through, rely on signature only
++
+         # ── Rate limiting (after auth) ───────────────────────────
+         now = time.time()
+         window = self._rate_counts.setdefault(route_name, [])
+diff --git a/gateway/platforms/whatsapp.py b/gateway/platforms/whatsapp.py
+index a82417a60..2ec549c63 100644
+--- a/gateway/platforms/whatsapp.py
++++ b/gateway/platforms/whatsapp.py
+@@ -192,7 +192,7 @@ class WhatsAppAdapter(BasePlatformAdapter):
+             if isinstance(configured, str):
+                 return configured.lower() in ("true", "1", "yes", "on")
+             return bool(configured)
+-        return os.getenv("WHATSAPP_REQUIRE_MENTION", "false").lower() in ("true", "1", "yes", "on")
++        return os.getenv("WHATSAPP_REQUIRE_MENTION", "true").lower() not in ("false", "0", "no", "off")
+ 
+     def _whatsapp_free_response_chats(self) -> set[str]:
+         raw = self.config.extra.get("free_response_chats")
+diff --git a/gateway/run.py b/gateway/run.py
+index 9107f6c48..472ea8a09 100644
+--- a/gateway/run.py
++++ b/gateway/run.py
+@@ -434,6 +434,27 @@ if not _configured_cwd or _configured_cwd in (".", "auto", "cwd"):
+     _fallback = os.getenv("MESSAGING_CWD") or str(Path.home())
+     os.environ["TERMINAL_CWD"] = _fallback
+ 
++# Install file-system path guard so gateway users cannot read/write outside
++# the workspace.  HermesDesk sets HERMESDESK_WORKSPACE; standalone deployments
++# can set GATEWAY_WORKSPACE_ROOT.  If neither is configured the guard is a
++# no-op (backward-compatible).
++try:
++    from overlays.path_guard import install as _install_path_guard
++    _install_path_guard()
++except Exception:
++    pass
++
++# Secure .env file permissions (POSIX).  On Windows chmod is a no-op, so
++# this is a best-effort measure — operators should rely on filesystem ACLs
++# or encrypted storage for production deployments.
++_env_path = _hermes_home / ".env"
++if _env_path.exists():
++    try:
++        from hermes_cli.config import _secure_file
++        _secure_file(_env_path)
++    except Exception:
++        pass
++
+ from gateway.config import (
+     Platform,
+     _BUILTIN_PLATFORM_VALUES,
+@@ -1238,6 +1259,26 @@ class GatewayRunner:
+     def exit_code(self) -> Optional[int]:
+         return self._exit_code
+ 
++    def _require_gateway_owner(self, source: SessionSource) -> Optional[str]:
++        """Return an error message if the caller is not a gateway owner.
++
++        When ``GATEWAY_OWNER_IDS`` is set (comma-separated user IDs), dangerous
++        slash commands (/restart, /model, /debug, etc.) require the caller to
++        be in that list.  When the env var is unset, all authorized users can
++        run these commands (backward-compatible).
++        """
++        _owner_ids_raw = os.getenv("GATEWAY_OWNER_IDS", "").strip()
++        if not _owner_ids_raw:
++            return None
++        _owner_ids = {uid.strip() for uid in _owner_ids_raw.split(",") if uid.strip()}
++        _caller = (source.user_id or "").strip()
++        if _caller in _owner_ids or _caller.split("@")[0] in _owner_ids:
++            return None
++        return (
++            "\u26d4 This command is restricted to gateway owners. "
++            "Ask the bot owner to add your user ID to GATEWAY_OWNER_IDS."
++        )
++
+     def _session_key_for_source(self, source: SessionSource) -> str:
+         """Resolve the current session key for a source, honoring gateway config when available."""
+         if hasattr(self, "session_store") and self.session_store is not None:
+@@ -2451,6 +2492,13 @@ class GatewayRunner:
+                 "Set GATEWAY_ALLOW_ALL_USERS=true in ~/.hermes/.env to allow open access, "
+                 "or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id)."
+             )
++        if _allow_all:
++            logger.warning(
++                "SECURITY: Allow-all mode is active (GATEWAY_ALLOW_ALL_USERS or per-platform "
++                "*_ALLOW_ALL_USERS is set). ANY person who discovers your bot can interact with "
++                "the AI agent, execute slash commands, and (if shell tools are enabled) run "
++                "arbitrary commands on this machine. Consider switching to allowlists + pairing."
++            )
+         
+         # Discover Python plugins before shell hooks so plugin block
+         # decisions take precedence in tie cases.  The CLI startup path
+@@ -6176,6 +6224,10 @@ class GatewayRunner:
+ 
+         The session is preserved so the user can continue the conversation.
+         """
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         source = event.source
+         session_entry = self.session_store.get_or_create_session(source)
+         session_key = session_entry.session_key
+@@ -6206,6 +6258,10 @@ class GatewayRunner:
+ 
+     async def _handle_restart_command(self, event: MessageEvent) -> str:
+         """Handle /restart command - drain active work, then restart the gateway."""
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         # Defensive idempotency check: if the previous gateway process
+         # recorded this same /restart (same platform + update_id) and the new
+         # process is seeing it *again*, this is a re-delivery caused by PTB's
+@@ -6415,6 +6471,10 @@ class GatewayRunner:
+           /model <name> --provider <provider> — switch provider + model
+           /model --provider <provider>        — switch to provider, auto-detect model
+         """
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         import yaml
+         from hermes_cli.model_switch import (
+             switch_model as _switch_model, parse_model_flags,
+@@ -6766,6 +6826,10 @@ class GatewayRunner:
+ 
+     async def _handle_personality_command(self, event: MessageEvent) -> str:
+         """Handle /personality command - list or set a personality."""
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         from hermes_constants import display_hermes_home
+ 
+         args = event.get_command_args().strip().lower()
+@@ -6896,6 +6960,10 @@ class GatewayRunner:
+ 
+     async def _handle_set_home_command(self, event: MessageEvent) -> str:
+         """Handle /sethome command -- set the current chat as the platform's home channel."""
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         source = event.source
+         platform_name = source.platform.value if source.platform else "unknown"
+         chat_id = source.chat_id
+@@ -7482,6 +7550,10 @@ class GatewayRunner:
+             from hermes_cli.tools_config import _get_platform_tools
+             enabled_toolsets = sorted(_get_platform_tools(user_config, platform_key))
+ 
++            if os.getenv("GATEWAY_SHELL_ENABLED", "").lower() not in ("true", "1", "yes", "on"):
++                _shell_tools = {"terminal", "exec", "browser", "code_execution"}
++                enabled_toolsets = [t for t in enabled_toolsets if t not in _shell_tools]
++
+             pr = self._provider_routing
+             max_iterations = int(os.getenv("HERMES_MAX_ITERATIONS", "90"))
+             reasoning_config = self._resolve_session_reasoning_config(source=source)
+@@ -7774,6 +7846,13 @@ class GatewayRunner:
+             is_session_yolo_enabled,
+         )
+ 
++        _yolo_allowed_raw = os.getenv("YOLO_ALLOWED_USERS", "").strip()
++        if _yolo_allowed_raw:
++            _yolo_allowed = {uid.strip() for uid in _yolo_allowed_raw.split(",") if uid.strip()}
++            _caller = event.source.user_id or ""
++            if _caller not in _yolo_allowed and _caller.split("@")[0] not in _yolo_allowed:
++                return "\u26d4 YOLO mode is restricted. Ask the bot owner to add you to YOLO_ALLOWED_USERS."
++
+         session_key = self._session_key_for_source(event.source)
+         current = is_session_yolo_enabled(session_key)
+         if current:
+@@ -8465,6 +8544,10 @@ class GatewayRunner:
+         active session (tool schemas are baked into the system prompt).  The
+         next message re-sends full input tokens, which is expensive on
+         long-context or high-reasoning models.
++        """
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
+ 
+         To surface that cost, the command routes through the slash-confirm
+         primitive: users get an Approve Once / Always Approve / Cancel
+@@ -8900,6 +8983,10 @@ class GatewayRunner:
+         NOT full log files, to protect conversation privacy.  Users who need
+         full log uploads should use ``hermes debug share`` from the CLI.
+         """
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
++
+         import asyncio
+         from hermes_cli.debug import (
+             _capture_dump, collect_debug_report,
+@@ -8945,6 +9032,9 @@ class GatewayRunner:
+         files are written so either the current gateway process or the next one
+         can notify the user when the update finishes.
+         """
++        _owner_err = self._require_gateway_owner(event.source)
++        if _owner_err:
++            return _owner_err
+         import json
+         import shutil
+         import subprocess
+@@ -10639,6 +10729,10 @@ class GatewayRunner:
+         from hermes_cli.tools_config import _get_platform_tools
+         enabled_toolsets = sorted(_get_platform_tools(user_config, platform_key))
+ 
++        if os.getenv("GATEWAY_SHELL_ENABLED", "").lower() not in ("true", "1", "yes", "on"):
++            _shell_tools = {"terminal", "exec", "browser", "code_execution"}
++            enabled_toolsets = [t for t in enabled_toolsets if t not in _shell_tools]
++
+         display_config = user_config.get("display", {})
+         if not isinstance(display_config, dict):
+             display_config = {}
