@@ -1,5 +1,8 @@
 """Route Hermes' shell-command approval to a Tauri-native modal.
 
+# DEPRECATED: approval_backend.remove_when=Phase4
+# Target replacement: ``python/src/approval_backend.py``
+
 Hermes' approval system lives in ``tools/approval.py``. The CLI flow
 prints a yes/no prompt to stdout and reads ``input()`` (see
 ``prompt_dangerous_approval`` in upstream). In a desktop app there is
@@ -10,6 +13,10 @@ clicks Allow / Deny in a native Tauri WebView dialog.
 Default policy: deny. No "always allow" persistence in v1 — the user
 must re-confirm every dangerous command. This is intentionally more
 strict than upstream because most HermesDesk users are non-technical.
+
+The approval-handshake logic is delegated to
+``python/src/approval_backend.py`` (Phase 3B).  This overlay only
+installs the monkey-patch on ``tools.approval``.
 """
 
 from __future__ import annotations
@@ -17,45 +24,27 @@ from __future__ import annotations
 import json
 import logging
 import os
+import sys
 import urllib.request
 import urllib.error
+from pathlib import Path
 from typing import Any
 
 log = logging.getLogger("hermesdesk.approval")
 
+try:
+    from approval_backend import ApprovalBackend
+except ImportError:
+    _src = str(Path(__file__).resolve().parent.parent / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    from approval_backend import ApprovalBackend
+
+_backend = ApprovalBackend()
+
 
 def _ask_tauri(command: str, description: str) -> str:
-    """Return one of: 'once', 'session', 'always', 'deny'.
-
-    HermesDesk maps Tauri's two-choice dialog (Allow / Deny) onto
-    `'once'` and `'deny'`. We never auto-promote to session/always; the
-    user must explicitly re-confirm every dangerous command.
-    """
-    url = os.environ.get("HERMESDESK_APPROVAL_URL")
-    if not url:
-        log.warning("no HERMESDESK_APPROVAL_URL; denying command %r", command)
-        return "deny"
-
-    payload = json.dumps({
-        "command": command,
-        "description": description,
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        url, data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec - loopback
-            body = json.loads(resp.read())
-            return "once" if bool(body.get("allowed")) else "deny"
-    except urllib.error.URLError:
-        log.exception("approval bridge unreachable; denying")
-        return "deny"
-    except Exception:
-        log.exception("approval bridge error; denying")
-        return "deny"
+    return _backend.ask(command, description)
 
 
 def install() -> None:

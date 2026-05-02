@@ -1,6 +1,9 @@
 """
 Path guard for the messaging gateway.
 
+# DEPRECATED: path_policy.remove_when=Phase4
+# Target replacement: ``python/src/path_policy.py``
+
 Installs a lightweight file-system jail that restricts agent-initiated
 file operations to a configurable workspace root.  The gateway process
 itself is unaffected — only file_tools calls funnel through the guarded
@@ -8,6 +11,9 @@ entry points.
 
 Activates when ``GATEWAY_WORKSPACE_ROOT`` is set (HermesDesk sets this
 from ``HERMESDESK_WORKSPACE``).  When unset, the guard is a no-op.
+
+The actual path-checking logic is delegated to ``path_policy.PathPolicy``
+(Phase 3A).  This overlay only installs the monkey-patches.
 """
 
 from __future__ import annotations
@@ -16,13 +22,20 @@ import builtins
 import logging
 import os
 import shutil
+import sys
 from pathlib import Path
 
 log = logging.getLogger("gateway.path_guard")
 
-_workspace_root = None
-_extra_read_roots = []
-_extra_write_roots = []
+try:
+    from path_policy import PathPolicy
+except ImportError:
+    _src = str(Path(__file__).resolve().parent.parent / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    from path_policy import PathPolicy
+
+_policy = None  # type: PathPolicy | None
 _installed = False
 
 _orig_open = builtins.open
@@ -30,31 +43,13 @@ _patched = []
 
 
 def _norm(p):
-    return Path(os.path.realpath(os.path.abspath(os.fspath(p))))
-
-
-def _is_under(target, root):
-    try:
-        target.relative_to(root)
-        return True
-    except ValueError:
-        return False
+    return PathPolicy._norm(p)
 
 
 def _check(path, write=None):
-    if _workspace_root is None:
+    if _policy is None:
         return _norm(path)
-    p = _norm(path)
-    roots = [_workspace_root] + _extra_write_roots
-    if not write:
-        roots = roots + _extra_read_roots
-    for r in roots:
-        if _is_under(p, r):
-            return p
-    raise PermissionError(
-        "Gateway workspace guard blocked %s to %s (allowed root: %s)"
-        % ("write" if write else "read", str(p), str(_workspace_root))
-    )
+    return _policy.enforce(path, write=bool(write))
 
 
 def _safe_open(file, mode="r", *args, **kwargs):
@@ -105,7 +100,7 @@ def _make_shutil_shim(orig, name):
 
 
 def install(workspace=None):
-    global _workspace_root, _extra_read_roots, _extra_write_roots, _installed
+    global _policy, _installed
     if _installed:
         return
 
@@ -120,14 +115,14 @@ def install(workspace=None):
         _installed = True
         return
 
-    _workspace_root = _norm(_root_str)
+    _root = _norm(_root_str)
     try:
-        _workspace_root.mkdir(parents=True, exist_ok=True)
+        _root.mkdir(parents=True, exist_ok=True)
     except OSError:
         pass
 
-    _extra_write = []
-    _extra_read = []
+    _extra_write: list[Path] = []
+    _extra_read: list[Path] = []
 
     _hermes_home = os.environ.get("HERMES_HOME")
     if _hermes_home:
@@ -151,8 +146,11 @@ def install(workspace=None):
         ]
     )
 
-    _extra_write_roots = [_norm(p) for p in _extra_write]
-    _extra_read_roots = [_norm(p) for p in _extra_read]
+    _policy = PathPolicy(
+        _root,
+        extra_read=_extra_read,
+        extra_write=_extra_write,
+    )
 
     builtins.open = _safe_open
 

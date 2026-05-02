@@ -1,5 +1,8 @@
 """Seed Hermes' tool config to the HermesDesk keep-list.
 
+# DEPRECATED: tool_policy.remove_when=Phase4
+# Target replacement: ``python/src/tool_policy.py``
+
 Hermes selects the active toolsets by reading
 ``~/.hermes/config.yaml`` (under HERMES_HOME) at the
 ``platform_toolsets["cli"]`` key. The CLI's `hermes tools` configurator
@@ -10,46 +13,31 @@ For HermesDesk we *write* a deterministic config on first launch (and on
 every launch when the Power-user toggle changes), so the user never has
 to use `hermes tools` from a terminal they don't have.
 
-The names below come from ``hermes_cli/tools_config.py:CONFIGURABLE_TOOLSETS``.
-
-Default-on (safe, no shell, no code exec):
-    web, file, vision, image_gen, tts, skills, todo
-
-Power-user adds (only when HERMESDESK_POWER_USER=1):
-    browser, terminal, code_execution, moa
+The toolset-resolution logic is delegated to
+``python/src/tool_policy.py`` (Phase 3D).  This overlay only
+writes the config file.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 
 log = logging.getLogger("hermesdesk.toolset")
 
-
-KEEP_LIST = [
-    "web",
-    "file",
-    "vision",
-    "image_gen",
-    "tts",
-    "skills",
-    "todo",
-]
-
-POWER_USER_EXTRA = [
-    "browser",
-    "terminal",
-    "code_execution",
-    "moa",
-]
+try:
+    from tool_policy import ToolPolicy  # type: ignore[import-untyped]
+except ImportError:
+    _src = str(Path(__file__).resolve().parent.parent / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    from tool_policy import ToolPolicy  # type: ignore[import-untyped]
 
 
 def _resolved_set() -> list[str]:
-    if os.environ.get("HERMESDESK_POWER_USER") == "1":
-        return KEEP_LIST + POWER_USER_EXTRA
-    return list(KEEP_LIST)
+    return ToolPolicy.resolve(ToolPolicy.is_power_user())
 
 
 def install() -> None:

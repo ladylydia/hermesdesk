@@ -1,5 +1,10 @@
 """Make stripped Hermes subpackages importable as harmless no-ops.
 
+# DEPRECATED: gateway_policy.remove_when=Phase4
+# Target replacement: ``python/src/gateway_policy.py`` — feature-flag
+# gating instead of stub-module injection.  When ``GatewayPolicy.enabled``
+# is False, the web child should never attempt to import gateway code.
+
 This applies to the **Hermes web child** (`desktop_entrypoint.py`), not to the
 **separate messaging-gateway process** Tauri spawns (`python -m gateway.run`).
 

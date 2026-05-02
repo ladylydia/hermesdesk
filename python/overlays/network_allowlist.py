@@ -1,5 +1,8 @@
 """Network egress allowlist (m4).
 
+# DEPRECATED: network_policy.remove_when=Phase4
+# Target replacement: ``python/src/network_policy.py``
+
 By default we allow only:
 
   - 127.0.0.1 / localhost   (Hermes' own web_server)
@@ -11,67 +14,59 @@ Implemented by patching httpx (used by Hermes core) and requests
 allowlist; non-matching requests raise a clear error.
 
 Power-user mode disables the allowlist entirely (HERMESDESK_NET_OPEN=1).
+
+The host-checking logic is delegated to
+``python/src/network_policy.py`` (Phase 3C).  This overlay only
+installs the httpx / requests monkey-patches.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import sys
+from pathlib import Path
 from urllib.parse import urlparse
 
 log = logging.getLogger("hermesdesk.net")
 
+try:
+    from network_policy import NetworkPolicy  # type: ignore[import-untyped]
+except ImportError:
+    _src = str(Path(__file__).resolve().parent.parent / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    from network_policy import NetworkPolicy  # type: ignore[import-untyped]
 
-# Hosts we always allow regardless of provider config.
-DEFAULT_ALLOW = {
-    "localhost",
-    "127.0.0.1",
-    "speech.platform.bing.com",   # Edge TTS
-    "agentskills.io",              # skills hub
-    "raw.githubusercontent.com",   # skills hub backing store
-    "github.com",                  # skills hub repo metadata
-    "api.github.com",
-}
-
-
-def _allowed_hosts() -> set[str]:
-    extra = set()
-    for v in (
-        os.environ.get("HERMESDESK_LLM_HOST", ""),
-        os.environ.get("HERMESDESK_EXTRA_HOSTS", ""),
-    ):
-        for h in v.split(","):
-            h = h.strip().lower()
-            if h:
-                extra.add(h)
-    return DEFAULT_ALLOW | extra
+_policy: NetworkPolicy | None = None
 
 
 def _check_url(url: str) -> None:
     if os.environ.get("HERMESDESK_NET_OPEN") == "1":
         return
-    try:
-        host = (urlparse(url).hostname or "").lower()
-    except Exception:
-        raise PermissionError(f"HermesDesk: could not parse URL {url!r}")
-    if not host:
-        return  # local relative paths
-    if host.endswith(".localhost"):
-        return
-    allowed = _allowed_hosts()
-    # exact match or one-level subdomain match (api.openrouter.ai matches openrouter.ai)
-    if host in allowed:
-        return
-    for a in allowed:
-        if host.endswith("." + a):
+    if _policy is not None:
+        try:
+            _policy.check_url(url)
             return
+        except PermissionError:
+            pass
+    # Fallback logic (should not be reachable after policy is loaded)
+    host = (urlparse(url).hostname or "").lower()
+    if not host or host.endswith(".localhost"):
+        return
+    if host in {"localhost", "127.0.0.1"} or host.startswith("127.") or host == "::1":
+        return
     raise PermissionError(
-        f"HermesDesk: outbound request to {host!r} blocked by network "
-        f"allowlist. Add it under Settings -> Power user -> Network."
+        f"HermesDesk: outbound request to {host!r} blocked by network allowlist."
     )
 
 
 def install() -> None:
+    global _policy
+    _policy = NetworkPolicy(
+        llm_host=os.environ.get("HERMESDESK_LLM_HOST", ""),
+        extra_hosts=os.environ.get("HERMESDESK_EXTRA_HOSTS", ""),
+    )
     try:
         import httpx
     except ImportError:

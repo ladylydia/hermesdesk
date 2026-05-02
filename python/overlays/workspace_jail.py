@@ -1,5 +1,8 @@
 """Workspace-folder jail (m4).
 
+# DEPRECATED: path_policy.remove_when=Phase4
+# Target replacement: ``python/src/policies/path_policy.py``
+
 All file operations Hermes performs must stay inside a single workspace
 folder, by default %USERPROFILE%\\Documents\\HermesWork. We enforce
 this by wrapping the small set of "open file" entry points that every
@@ -21,6 +24,11 @@ Configuration is read from environment variables set by the Tauri shell:
     HERMESDESK_WORKSPACE   absolute path of the workspace folder
     HERMESDESK_BUNDLE_DIR  absolute path of the installed app dir
     HERMESDESK_DATA_DIR    absolute path of the per-user data dir
+
+The actual path-checking logic is delegated to
+``python/src/policies/path_policy.py`` (Phase 3A).  This overlay only
+installs the monkey-patches that wire ``builtins.open`` / ``os.*`` /
+``shutil.*`` to the policy.
 """
 
 from __future__ import annotations
@@ -35,47 +43,29 @@ from typing import Iterable
 
 log = logging.getLogger("hermesdesk.jail")
 
+try:
+    from path_policy import PathPolicy, PathPolicyError  # type: ignore[import-untyped]
+except ImportError:
+    # Dev layout: python/src/ not yet on sys.path.
+    _src = str(Path(__file__).resolve().parent.parent / "src")
+    if _src not in sys.path:
+        sys.path.insert(0, _src)
+    from path_policy import PathPolicy, PathPolicyError  # type: ignore[import-untyped]
 
-class JailError(PermissionError):
-    """Raised when a file op tries to escape the workspace."""
+JailError = PathPolicyError  # backward-compat
 
-
-_workspace_root: Path | None = None
-_extra_read_roots: list[Path] = []
-_extra_write_roots: list[Path] = []
+_policy: PathPolicy | None = None
 _installed = False
 
 
 def _norm(p: str | os.PathLike) -> Path:
-    return Path(os.path.realpath(os.path.abspath(os.fspath(p))))
-
-
-def _is_under(target: Path, root: Path) -> bool:
-    try:
-        target.relative_to(root)
-        return True
-    except ValueError:
-        return False
+    return PathPolicy._norm(p)  # type: ignore[attr-defined]
 
 
 def _check(path: str | os.PathLike, *, write: bool) -> Path:
-    if _workspace_root is None:
-        # Overlay not configured -> default-deny is unsafe in tests; allow.
+    if _policy is None:
         return _norm(path)
-
-    p = _norm(path)
-    roots = [_workspace_root] + _extra_write_roots
-    if not write:
-        roots = roots + _extra_read_roots
-
-    for r in roots:
-        if _is_under(p, r):
-            return p
-
-    raise JailError(
-        f"HermesDesk workspace jail blocked {'write' if write else 'read'} "
-        f"to {p!s} (allowed root: {_workspace_root!s})"
-    )
+    return _policy.enforce(path, write=write)
 
 
 # --- builtins.open wrapper -------------------------------------------------
@@ -133,12 +123,14 @@ def _replace(obj, name, new):
 def configure(workspace: Path,
               extra_read: Iterable[Path] = (),
               extra_write: Iterable[Path] = ()) -> None:
-    global _workspace_root, _extra_read_roots, _extra_write_roots
-    _workspace_root = _norm(workspace)
-    _extra_read_roots = [_norm(p) for p in extra_read]
-    _extra_write_roots = [_norm(p) for p in extra_write]
-    _workspace_root.mkdir(parents=True, exist_ok=True)
-    log.info("workspace jail root = %s", _workspace_root)
+    global _policy
+    _policy = PathPolicy(
+        workspace,
+        extra_read=list(extra_read),
+        extra_write=list(extra_write),
+    )
+    workspace.mkdir(parents=True, exist_ok=True)
+    log.info("workspace jail root = %s", workspace)
 
 
 def install() -> None:
