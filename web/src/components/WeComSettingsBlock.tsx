@@ -44,6 +44,7 @@ export function WeComSettingsBlock({ className }: { className?: string }) {
   const [error, setError] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [openAccess, setOpenAccess] = useState(true);
+  const [selectedMethod, setSelectedMethod] = useState<"qr" | "manual">("qr");
 
   // QR scan
   const [qrPolling, setQrPolling] = useState(false);
@@ -179,7 +180,8 @@ export function WeComSettingsBlock({ className }: { className?: string }) {
     if (env?.setupMethod === "qr") {
       startQr();
     } else {
-      setViewMode("manual");
+      setSelectedMethod("manual");
+      setViewMode("choose");
     }
   }
 
@@ -218,17 +220,57 @@ export function WeComSettingsBlock({ className }: { className?: string }) {
         </>
       ) : null}
 
-      {/* ── QR scan section (viewMode = choose | qr) ── */}
-      {(viewMode === "choose" || viewMode === "qr") && !env?.configured ? (
+      {/* ── Choose mode: radio select ── */}
+      {viewMode === "choose" && !env?.configured ? (
         <div className="rounded-lg border border-dashed border-zinc-300/80 px-3 py-2.5 text-sm dark:border-zinc-700/80">
-          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-1">
+          <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mb-2">
             {t("settings.wecomQrTitle")}
           </p>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mb-2">{t("settings.wecomQrLead")}</p>
-          {!qrPolling && !qrView?.progress ? (
+          <div className="flex items-center gap-3 mb-2">
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input type="radio" name="wecom-method" checked={selectedMethod === "qr"} onChange={() => setSelectedMethod("qr")} />
+              {t("settings.wecomMethodQr")}
+            </label>
+            <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+              <input type="radio" name="wecom-method" checked={selectedMethod === "manual"} onChange={() => setSelectedMethod("manual")} />
+              {t("settings.wecomMethodManual")}
+            </label>
+          </div>
+          {selectedMethod === "qr" && !qrPolling && !qrView?.progress ? (
             <button type="button" className={btnClass} onClick={() => void startQr()}>
               {t("settings.wecomQrStart")}
             </button>
+          ) : null}
+          {selectedMethod === "manual" ? (
+            <div className="space-y-2 mt-2">
+              <input
+                className={inputClass}
+                type="text"
+                value={botId}
+                placeholder={t("settings.wecomBotIdPlaceholder")}
+                autoComplete="off" spellCheck={false}
+                onChange={(e) => setBotId(e.target.value)}
+              />
+              <input
+                className={inputClass}
+                type="password"
+                value={secret}
+                placeholder={t("settings.wecomSecretPlaceholder")}
+                autoComplete="off" spellCheck={false}
+                onChange={(e) => setSecret(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") void saveConfig(); }}
+              />
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <input type="checkbox" checked={openAccess} onChange={(e) => setOpenAccess(e.target.checked)} className="rounded" />
+                {t("settings.wecomOpenAccess")}
+              </label>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" className={btnClass} onClick={() => void saveConfig()} disabled={saving || !botId.trim() || !secret.trim()}>
+                  {saving ? "…" : t("settings.wecomFormSave")}
+                </button>
+              </div>
+              {error ? <p className="text-xs text-red-600 dark:text-red-400">{t("settings.wecomFormError", { msg: error })}</p> : null}
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -241,93 +283,18 @@ export function WeComSettingsBlock({ className }: { className?: string }) {
             <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">{qrView.progress.message}</p>
           ) : null}
           {qrView.progress.url ? (
-            <a
-              href={qrView.progress.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-1 inline-block break-all text-xs font-medium text-sky-600 underline-offset-2 hover:underline dark:text-sky-400"
-            >
+            <a href={qrView.progress.url} target="_blank" rel="noopener noreferrer"
+              className="mt-1 inline-block break-all text-xs font-medium text-sky-600 underline-offset-2 hover:underline dark:text-sky-400">
               {qrView.progress.url}
             </a>
           ) : null}
         </div>
       ) : null}
-
-      {qrInlineErr ? (
-        <p className="text-sm text-red-600 dark:text-red-400">{qrInlineErr}</p>
-      ) : null}
-
+      {qrInlineErr ? <p className="text-sm text-red-600 dark:text-red-400">{qrInlineErr}</p> : null}
       {qrPolling ? (
         <button type="button" className={btnClass} onClick={() => void cancelQr()}>
           {t("settings.wecomQrCancel")}
         </button>
-      ) : null}
-
-      {/* ── Divider (only when both QR and manual shown) ── */}
-      {viewMode === "choose" && !qrPolling && !qrView?.progress ? (
-        <>
-          <hr className="border-zinc-200/60 dark:border-zinc-700/60" />
-          <div className="text-center">
-            <button type="button" className={btnClass} onClick={() => setViewMode("manual")}>
-              {t("settings.wecomManualEntry")}
-            </button>
-          </div>
-        </>
-      ) : null}
-
-      {/* ── Manual form (viewMode = manual) ── */}
-      {viewMode === "manual" ? (
-        <div className="space-y-3 rounded-lg border border-sky-200/80 bg-sky-50/50 px-3 py-3 dark:border-sky-800/50 dark:bg-sky-950/25">
-          <div className="flex items-center justify-between">
-            <p className="text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
-              {t("settings.wecomFormLead")}
-            </p>
-            <button type="button" className={cn(btnClass, "text-xs")} onClick={() => setViewMode("choose")}>
-              ← {t("settings.wecomBackToQr")}
-            </button>
-          </div>
-          <input
-            className={inputClass}
-            type="text"
-            value={botId}
-            placeholder={t("settings.wecomBotIdPlaceholder")}
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => setBotId(e.target.value)}
-          />
-          <input
-            className={inputClass}
-            type="password"
-            value={secret}
-            placeholder={t("settings.wecomSecretPlaceholder")}
-            autoComplete="off"
-            spellCheck={false}
-            onChange={(e) => setSecret(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") void saveConfig();
-            }}
-          />
-          <label className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={openAccess}
-              onChange={(e) => setOpenAccess(e.target.checked)}
-              className="rounded"
-            />
-            {t("settings.wecomOpenAccess")}
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className={btnClass} onClick={() => void saveConfig()} disabled={saving || !botId.trim() || !secret.trim()}>
-              {saving ? "…" : t("settings.wecomFormSave")}
-            </button>
-            <button type="button" className={btnClass} onClick={() => { setError(null); setBotId(""); setSecret(""); setViewMode(env?.configured ? "configured" : "choose"); }}>
-              {t("settings.wecomFormCancel")}
-            </button>
-          </div>
-          {error ? (
-            <p className="text-sm text-red-600 dark:text-red-400">{t("settings.wecomFormError", { msg: error })}</p>
-          ) : null}
-        </div>
       ) : null}
     </div>
   );

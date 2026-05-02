@@ -296,6 +296,8 @@ export const MESSAGES = {
       wecomManualEntry: "或手动填写 Bot ID 和 Secret",
       wecomBackToQr: "返回扫码",
       wecomQrTitle: "扫码创建",
+      wecomMethodQr: "扫码创建（推荐）",
+      wecomMethodManual: "手动填写",
       gatewayTroubleshootTelegram:
         "Telegram：① 本页「消息网关」须显示「运行中」；② 需 **TELEGRAM_BOT_TOKEN**（@BotFather）；③ 若使用 TELEGRAM_ALLOWED_USERS，请填对 numeric user id；④ 查看 hermes-home/logs/gateway.log。",
       gatewayTroubleshootFeishu:
@@ -826,6 +828,8 @@ export const MESSAGES = {
       wecomManualEntry: "Or enter Bot ID and Secret manually",
       wecomBackToQr: "Back to QR",
       wecomQrTitle: "Scan to create",
+      wecomMethodQr: "Scan QR (recommended)",
+      wecomMethodManual: "Enter manually",
       qqTitle: "QQ bot (official OpenAPI v2)",
       qqLead:
         "Recommended: scan to bind your QQ bot.",
