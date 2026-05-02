@@ -31,5 +31,5 @@ export type SetupCatalogOption = {
    * Custom modal body instead of generic env fields (e.g. Weixin iLink route C).
    * If set, `configFields` may be omitted.
    */
-  configUi?: "weixin_route_c" | "qqbot_route_c" | "feishu_route_c";
+  configUi?: "weixin_route_c" | "qqbot_route_c" | "feishu_route_c" | "wecom_route_c";
 };

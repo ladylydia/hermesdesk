@@ -7,6 +7,7 @@ import { getDraftSnapshot, updateDraft, useDraft, type SectionSelection } from "
 import { WeixinQrRouteCBlock, type WeixinEnvSnapshot } from "../components/WeixinQrRouteCBlock";
 import { QqbotQrRouteBlock, type QqEnvSnapshot } from "../components/QqbotQrRouteBlock";
 import { FeishuQrRouteBlock, type FeishuEnvSnapshot } from "../components/FeishuQrRouteBlock";
+import { WeComSettingsBlock, type WeComEnvSnapshot } from "../components/WeComSettingsBlock";
 import type {
   LocaleKey,
   Localized,
@@ -79,6 +80,7 @@ export function SetupOptionsTable({
   const [weixinEnv, setWeixinEnv] = useState<WeixinEnvSnapshot | null>(null);
   const [qqEnv, setQqEnv] = useState<QqEnvSnapshot | null>(null);
   const [feishuEnv, setFeishuEnv] = useState<FeishuEnvSnapshot | null>(null);
+  const [wecomEnv, setWecomEnv] = useState<WeComEnvSnapshot | null>(null);
 
   useEffect(() => {
     if (items.some((r) => r.configUi === "weixin_route_c")) {
@@ -93,6 +95,12 @@ export function SetupOptionsTable({
   useEffect(() => {
     if (items.some((r) => r.configUi === "feishu_route_c")) {
       invoke<FeishuEnvSnapshot>("cmd_feishu_env_status").then(setFeishuEnv).catch(() => setFeishuEnv(null));
+    }
+  }, [items]);
+
+  useEffect(() => {
+    if (items.some((r) => r.configUi === "wecom_route_c")) {
+      invoke<WeComEnvSnapshot>("cmd_wecom_env_status").then(setWecomEnv).catch(() => setWecomEnv(null));
     }
   }, [items]);
 
@@ -115,7 +123,7 @@ export function SetupOptionsTable({
   }
 
   function rowAllowsConfig(row: SetupCatalogOption): boolean {
-    const hasModal = (row.configFields?.length ?? 0) > 0 || row.configUi === "weixin_route_c" || row.configUi === "qqbot_route_c" || row.configUi === "feishu_route_c";
+    const hasModal = (row.configFields?.length ?? 0) > 0 || row.configUi === "weixin_route_c" || row.configUi === "qqbot_route_c" || row.configUi === "feishu_route_c" || row.configUi === "wecom_route_c";
     if (!hasModal) return false;
     if (isSkip) return false;
     if (selectionMode === "single") return singleId === row.id;
@@ -132,6 +140,7 @@ export function SetupOptionsTable({
     if (row.configUi === "weixin_route_c") return weixinEnv?.configured ?? false;
     if (row.configUi === "qqbot_route_c") return qqEnv?.configured ?? false;
     if (row.configUi === "feishu_route_c") return feishuEnv?.configured ?? false;
+    if (row.configUi === "wecom_route_c") return wecomEnv?.configured ?? false;
     return false;
   }
 
@@ -212,7 +221,7 @@ export function SetupOptionsTable({
           <tbody>
             {items.map((row) => {
               const hasFields =
-                (row.configFields?.length ?? 0) > 0 || row.configUi === "weixin_route_c" || row.configUi === "qqbot_route_c" || row.configUi === "feishu_route_c";
+                (row.configFields?.length ?? 0) > 0 || row.configUi === "weixin_route_c" || row.configUi === "qqbot_route_c" || row.configUi === "feishu_route_c" || row.configUi === "wecom_route_c";
               const envOk = isEnvConfigured(row);
               return (
                 <tr
@@ -383,6 +392,20 @@ export function SetupOptionsTable({
                 });
               }}
             />
+            <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80">
+              <button
+                type="button"
+                className="rounded-lg border border-zinc-300/90 px-4 py-2 text-sm dark:border-zinc-600"
+                onClick={() => setEditing(null)}
+              >
+                {t("setupOptions.cancelConfig")}
+              </button>
+            </div>
+          </div>
+        ) : editing?.configUi === "wecom_route_c" ? (
+          <div className="space-y-4">
+            <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-500">{t("settings.wecomLead")}</p>
+            <WeComSettingsBlock key={editing.id} />
             <div className="flex flex-wrap justify-end gap-2 border-t border-zinc-200/80 pt-4 dark:border-zinc-800/80">
               <button
                 type="button"

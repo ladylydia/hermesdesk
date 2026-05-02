@@ -189,11 +189,8 @@ export const CATALOG_GATEWAY: SetupCatalogOption[] = [
   {
     id: "wecom",
     name: L("企业微信", "WeCom"),
-    defaultHint: L("WECOM_BOT_ID + SECRET", "WECOM_BOT_ID + SECRET"),
-    configFields: [
-      F("WECOM_BOT_ID", L("WECOM_BOT_ID", "WECOM_BOT_ID"), L("Bot ID", "Bot ID"), "text"),
-      F("WECOM_SECRET", L("WECOM_SECRET", "WECOM_SECRET"), L("Secret", "Secret"), "password"),
-    ],
+    defaultHint: L("扫码创建或手动填写", "Scan to create or enter manually"),
+    configUi: "wecom_route_c",
   },
 ];
 
