@@ -286,6 +286,7 @@ pub struct WeComEnvSnapshot {
     pub has_bot_id: bool,
     pub has_secret: bool,
     pub bot_id_hint: Option<String>,
+    pub setup_method: Option<String>,
 }
 
 pub fn read_wecom_env_snapshot(hermes_home: &Path) -> WeComEnvSnapshot {
@@ -300,11 +301,13 @@ pub fn read_wecom_env_snapshot(hermes_home: &Path) -> WeComEnvSnapshot {
     let bot_id_hint = bot_id
         .map(|id| qq_app_id_display_hint(&id))
         .filter(|s| !s.is_empty());
+    let setup_method = keys.get("WECOM_SETUP_METHOD").cloned();
     WeComEnvSnapshot {
         configured,
         has_bot_id,
         has_secret,
         bot_id_hint,
+        setup_method,
     }
 }
 

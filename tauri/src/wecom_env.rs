@@ -57,6 +57,7 @@ pub fn cmd_wecom_save_config(
     let mut found_secret = false;
     let mut found_dm = false;
     let mut found_allow_all = false;
+    let mut found_setup_method = false;
     let dm_value = if open_access.unwrap_or(true) { "open" } else { "pairing" };
     let allow_all_value = if open_access.unwrap_or(true) { "true" } else { "false" };
     for line in &mut lines {
@@ -73,6 +74,9 @@ pub fn cmd_wecom_save_config(
         } else if trimmed.starts_with("WECOM_ALLOW_ALL_USERS=") || trimmed.starts_with("WECOM_ALLOW_ALL_USERS ") {
             *line = format!("WECOM_ALLOW_ALL_USERS={}", allow_all_value);
             found_allow_all = true;
+        } else if trimmed.starts_with("WECOM_SETUP_METHOD=") || trimmed.starts_with("WECOM_SETUP_METHOD ") {
+            *line = "WECOM_SETUP_METHOD=manual".to_string();
+            found_setup_method = true;
         }
     }
     if !found_id {
@@ -86,6 +90,9 @@ pub fn cmd_wecom_save_config(
     }
     if !found_allow_all {
         lines.push(format!("WECOM_ALLOW_ALL_USERS={}", allow_all_value));
+    }
+    if !found_setup_method {
+        lines.push("WECOM_SETUP_METHOD=manual".to_string());
     }
 
     std::fs::write(&env_path, lines.join("\n") + "\n").map_err(|e| e.to_string())
