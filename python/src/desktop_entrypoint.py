@@ -189,9 +189,9 @@ def main() -> int:
 
     # 0b. Build typed bootstrap config (Phase 2 — no behavior change yet).
     # Phase 3 policy objects will consume this instead of raw env vars.
-    from desktop_config import DesktopConfig
+    from desktop_config import from_env
 
-    cfg = DesktopConfig.from_env()
+    cfg = from_env()
     log.info(
         "DesktopConfig: mode=%s provider=%s llm_host=%s workspace=%s",
         cfg.runtime_mode.value, cfg.provider, cfg.llm_host, cfg.workspace,

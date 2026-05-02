@@ -100,4 +100,4 @@ def install() -> None:
     except ImportError:
         pass
 
-    log.info("network allowlist installed; allowed=%s", sorted(_allowed_hosts()))
+    log.info("network allowlist installed; allowed=%s", sorted(_policy.allowed_hosts))

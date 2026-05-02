@@ -1,12 +1,13 @@
 """Unit tests for policy objects (no Hermes import chain needed)."""
 
 import os
+import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 # Add python/src to path for test-time imports
-import sys
 _src = str(Path(__file__).resolve().parent.parent / "src")
 if _src not in sys.path:
     sys.path.insert(0, _src)
@@ -19,35 +20,37 @@ from secret_store import SecretStore
 
 class TestPathPolicy(unittest.TestCase):
     def setUp(self):
-        self.root = Path("/tmp/hermesdesk-workspace")
+        self.root = Path(tempfile.gettempdir()) / "hermesdesk-test-workspace"
+        self.read_dir = Path(tempfile.gettempdir()) / "hermesdesk-test-readonly"
+        self.write_dir = Path(tempfile.gettempdir()) / "hermesdesk-test-writable"
         self.policy = PathPolicy(
             self.root,
-            extra_read=[Path("/tmp/readonly")],
-            extra_write=[Path("/tmp/writable")],
+            extra_read=[self.read_dir],
+            extra_write=[self.write_dir],
         )
 
     def test_workspace_root(self):
-        self.assertEqual(self.policy.workspace_root, Path("/tmp/hermesdesk-workspace"))
+        self.assertEqual(self.policy.workspace_root, self.root)
 
     def test_valid_path_under_root(self):
         result = self.policy.enforce(self.root / "file.txt", write=True)
-        self.assertEqual(result, Path("/tmp/hermesdesk-workspace/file.txt"))
+        self.assertEqual(result, self.root / "file.txt")
 
     def test_valid_path_extra_read(self):
-        result = self.policy.enforce(Path("/tmp/readonly/data.txt"), write=False)
-        self.assertEqual(result, Path("/tmp/readonly/data.txt"))
+        result = self.policy.enforce(self.read_dir / "data.txt", write=False)
+        self.assertEqual(result, self.read_dir / "data.txt")
 
     def test_valid_path_extra_write(self):
-        result = self.policy.enforce(Path("/tmp/writable/out.txt"), write=True)
-        self.assertEqual(result, Path("/tmp/writable/out.txt"))
+        result = self.policy.enforce(self.write_dir / "out.txt", write=True)
+        self.assertEqual(result, self.write_dir / "out.txt")
 
     def test_block_escaped_path(self):
         with self.assertRaises(PathPolicyError):
-            self.policy.enforce(Path("/etc/passwd"), write=True)
+            self.policy.enforce(Path(os.sep) / "etc" / "passwd", write=True)
 
     def test_read_only_on_write_extra(self):
-        result = self.policy.enforce(Path("/tmp/writable/out.txt"), write=False)
-        self.assertEqual(result, Path("/tmp/writable/out.txt"))
+        result = self.policy.enforce(self.write_dir / "out.txt", write=False)
+        self.assertEqual(result, self.write_dir / "out.txt")
 
 
 class TestNetworkPolicy(unittest.TestCase):
