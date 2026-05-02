@@ -49,6 +49,12 @@ def _block_power_off() -> str:
 def _block_power_on() -> str:
     return (
         "## HermesDesk (desktop app)\n\n"
+        "You are running **locally** on the user's Windows machine inside the "
+        "HermesDesk desktop application. The `terminal` tool executes commands "
+        "natively on Windows (cmd.exe), not in WSL or a remote server. "
+        "When you see kernel names like \"WSL2\" or \"microsoft-standard\", "
+        "those come from the machine's WSL subsystem which is separate from "
+        "your execution environment.\n\n"
         "**Power user mode is on** for this session: terminal, browser, code, and/or mixture-of-agents tools "
         "may appear in your tool list. The user or system can still require confirmation for risky steps — "
         "only claim such actions were taken when you have a real successful tool result."
