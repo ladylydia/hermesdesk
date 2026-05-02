@@ -315,10 +315,17 @@ pub async fn cmd_clear_secret(app: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn cmd_validate_endpoint(
+    app: AppHandle,
     url: String,
     api_key: String,
 ) -> Result<(), String> {
     log::info!("cmd_validate_endpoint called: url={}", url);
+
+    // Validate the URL before ever sending an API key over the wire.
+    let cfg = read_provider_cfg(&app);
+    let saved_base = cfg.as_ref().and_then(|c| c.api_base_url.as_deref());
+    crate::validation::validate_public_endpoint(&url, saved_base)?;
+
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .no_proxy()

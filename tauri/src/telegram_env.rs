@@ -16,6 +16,7 @@ pub fn cmd_telegram_save_token(app: AppHandle, token: String) -> Result<(), Stri
     if token.is_empty() {
         return Err("Bot token must not be empty".into());
     }
+    crate::validation::validate_env_value(&token)?;
 
     let data_dir = crate::paths::ensure_data_dir(&app).map_err(|e| e.to_string())?;
     let hh = crate::gateway_supervisor::hermes_home_path(&data_dir);

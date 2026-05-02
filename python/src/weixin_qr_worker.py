@@ -83,6 +83,7 @@ def main() -> int:
     try:
         import asyncio
 
+        from env_validate import validate_env_value
         from gateway.platforms.weixin import qr_login
         from hermes_cli.config import get_env_value, remove_env_value, save_env_value
 
@@ -97,6 +98,9 @@ def main() -> int:
         token = str(creds.get("token", ""))
         base_url = str(creds.get("base_url", ""))
         user_id = str(creds.get("user_id", ""))
+
+        validate_env_value(account_id)
+        validate_env_value(token)
 
         # Drop legacy / tutorial keys and remove duplicate WEIXIN_ACCOUNT_ID / WEIXIN_TOKEN lines
         # so ``save_env_value`` (which only replaces the *first* match) cannot leave a stale second line

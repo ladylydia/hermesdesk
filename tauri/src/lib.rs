@@ -26,6 +26,7 @@ mod qqbot_qr;
 mod secrets;
 mod telegram_env;
 mod tray;
+mod validation;
 mod wecom_env;
 mod wecom_qr;
 mod weixin_qr;
@@ -513,27 +514,36 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
     }
 
     // 3. Spawn the Python child (Hermes web_server / desktop_entrypoint).
-    let spawn_cfg = resolve_spawn_config_for_children(&app)
-        .await
-        .map_err(|e| anyhow::anyhow!(e))?;
-    let supervisor =
-        python_supervisor::Supervisor::spawn(spawn_cfg.clone()).await?;
+    //    Errors here are logged but do NOT block the window from showing,
+    //    so the user can see the shell UI and diagnose startup issues.
+    let hermes_ok = async {
+        let spawn_cfg = resolve_spawn_config_for_children(&app)
+            .await
+            .map_err(|e| anyhow::anyhow!(e))?;
+        let supervisor =
+            python_supervisor::Supervisor::spawn(app.clone(), spawn_cfg.clone()).await?;
 
-    let port = supervisor.wait_for_port().await?;
-    log::info!("python ready on port {port}");
+        let port = supervisor.wait_for_port().await?;
+        log::info!("python ready on port {port}");
 
-    {
-        let state: tauri::State<AppState> = app.state();
-        *state.supervisor.lock().await = Some(supervisor);
-        *state.hermes_port.lock().await = Some(port);
+        {
+            let state: tauri::State<AppState> = app.state();
+            *state.supervisor.lock().await = Some(supervisor);
+            *state.hermes_port.lock().await = Some(port);
+        }
+
+        maybe_auto_start_gateway_service(&app, &spawn_cfg).await;
+        anyhow::Result::<()>::Ok(())
+    }
+    .await;
+
+    match hermes_ok {
+        Ok(()) => log::info!("Hermes Python bootstrap complete"),
+        Err(e) => log::error!("Hermes Python bootstrap failed: {e}"),
     }
 
-    maybe_auto_start_gateway_service(&app, &spawn_cfg).await;
-
-    // 4. Reveal the window. Keep the webview on the Tauri shell until the user
-    //    opens Hermes (Splash "Open dashboard" or onboarding "Start chatting")
-    //    so startup never auto-jumps to the Python dashboard.
-    log::info!("python ready on port {port} — waiting for user to open Hermes from shell");
+    // 4. Reveal the window regardless of Hermes state.
+    //    The frontend will show a "waiting for Hermes" or error state if needed.
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
         let _ = w.set_focus();
@@ -558,7 +568,7 @@ pub(crate) async fn respawn_embedded_hermes_python(app: tauri::AppHandle) -> Res
 
     let spawn_cfg = resolve_spawn_config_for_children(&app).await?;
     let power_user = spawn_cfg.power_user;
-    let supervisor = python_supervisor::Supervisor::spawn(spawn_cfg.clone())
+    let supervisor = python_supervisor::Supervisor::spawn(app.clone(), spawn_cfg.clone())
         .await
         .map_err(|e| e.to_string())?;
     let port = supervisor

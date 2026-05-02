@@ -60,6 +60,7 @@ def main() -> int:
     _write_progress({"phase": "starting", "message": None})
 
     try:
+        from env_validate import validate_env_value
         from hermes_cli.config import save_env_value
 
         # ── Step 1: Fetch QR code ──
@@ -108,6 +109,8 @@ def main() -> int:
                 bot_id = str(bot_info.get("botid") or bot_info.get("bot_id") or "").strip()
                 secret = str(bot_info.get("secret") or "").strip()
                 if bot_id and secret:
+                    validate_env_value(bot_id)
+                    validate_env_value(secret)
                     save_env_value("WECOM_BOT_ID", bot_id)
                     save_env_value("WECOM_SECRET", secret)
                     save_env_value("WECOM_DM_POLICY", "open")

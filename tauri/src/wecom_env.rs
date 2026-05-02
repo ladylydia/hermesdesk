@@ -44,6 +44,8 @@ pub fn cmd_wecom_save_config(
     if s.is_empty() {
         return Err("WECOM_SECRET must not be empty".into());
     }
+    crate::validation::validate_env_value(bid)?;
+    crate::validation::validate_env_value(s)?;
 
     let data_dir = crate::paths::ensure_data_dir(&app).map_err(|e| e.to_string())?;
     let hh = crate::gateway_supervisor::hermes_home_path(&data_dir);

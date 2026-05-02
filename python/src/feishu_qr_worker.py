@@ -54,6 +54,7 @@ def main() -> int:
     try:
         import builtins as _builtins
 
+        from env_validate import validate_env_value
         from gateway.platforms.feishu import (
             _begin_registration,
             _init_registration,
@@ -99,6 +100,8 @@ def main() -> int:
         domain = result.get("domain", "feishu")
         open_id = result.get("open_id")
 
+        validate_env_value(app_id)
+        validate_env_value(app_secret)
         save_env_value("FEISHU_APP_ID", app_id)
         save_env_value("FEISHU_APP_SECRET", app_secret)
         save_env_value("FEISHU_DOMAIN", domain)

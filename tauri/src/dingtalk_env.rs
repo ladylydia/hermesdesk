@@ -43,6 +43,8 @@ pub fn cmd_dingtalk_save_config(
     if csec.is_empty() {
         return Err("DINGTALK_CLIENT_SECRET must not be empty".into());
     }
+    crate::validation::validate_env_value(cid)?;
+    crate::validation::validate_env_value(csec)?;
 
     let data_dir = crate::paths::ensure_data_dir(&app).map_err(|e| e.to_string())?;
     let hh = crate::gateway_supervisor::hermes_home_path(&data_dir);

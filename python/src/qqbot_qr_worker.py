@@ -81,6 +81,7 @@ def main() -> int:
     try:
         import asyncio
 
+        from env_validate import validate_env_value
         from gateway.platforms.qqbot.onboard import (
             create_bind_task,
             poll_bind_result,
@@ -152,6 +153,8 @@ def main() -> int:
                         pass
 
                 # 6. Save credentials to .env
+                validate_env_value(bot_appid)
+                validate_env_value(client_secret)
                 save_env_value("QQ_APP_ID", bot_appid)
                 save_env_value("QQ_CLIENT_SECRET", client_secret)
                 if user_openid:
