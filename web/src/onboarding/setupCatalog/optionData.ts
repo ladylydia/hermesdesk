@@ -186,6 +186,15 @@ export const CATALOG_GATEWAY: SetupCatalogOption[] = [
       F("DINGTALK_CLIENT_SECRET", L("DINGTALK_CLIENT_SECRET", "DINGTALK_CLIENT_SECRET"), L("Client Secret", "Client Secret"), "password"),
     ],
   },
+  {
+    id: "wecom",
+    name: L("企业微信", "WeCom"),
+    defaultHint: L("WECOM_BOT_ID + SECRET", "WECOM_BOT_ID + SECRET"),
+    configFields: [
+      F("WECOM_BOT_ID", L("WECOM_BOT_ID", "WECOM_BOT_ID"), L("Bot ID", "Bot ID"), "text"),
+      F("WECOM_SECRET", L("WECOM_SECRET", "WECOM_SECRET"), L("Secret", "Secret"), "password"),
+    ],
+  },
 ];
 
 export const CATALOG_TOOLS: SetupCatalogOption[] = [

@@ -1,14 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-
-type PlatformState = { state?: string; error_message?: string | null };
-type GatewayStatusResponse = {
-  running: boolean;
-  eligible: boolean;
-  embeddedGatewayStartupSurvival?: boolean;
-  diskGatewayState?: string | null;
-  diskExitReason?: string | null;
-  platforms?: Record<string, PlatformState> | null;
-};
+import { useCallback, useEffect, useState } from "react";
+import { useGatewayStatus } from "../features/gateway/useGatewayStatus";
 
 function platformLabel(key: string): string {
   const map: Record<string, string> = {
@@ -17,6 +8,7 @@ function platformLabel(key: string): string {
     qqbot: "QQ",
     weixin: "微信",
     dingtalk: "钉钉",
+    wecom: "企微",
   };
   return map[key] ?? key;
 }
@@ -53,6 +45,7 @@ import { FeishuQrRouteBlock } from "../components/FeishuQrRouteBlock";
 import { PairingSettingsBlock } from "../components/PairingSettingsBlock";
 import { TelegramSettingsBlock } from "../components/TelegramSettingsBlock";
 import { QqbotQrRouteBlock } from "../components/QqbotQrRouteBlock";
+import { WeComSettingsBlock } from "../components/WeComSettingsBlock";
 import { WeixinQrRouteCBlock } from "../components/WeixinQrRouteCBlock";
 import { getLocale } from "../lib/i18n-core";
 import { useI18n } from "../lib/i18n";
@@ -75,35 +68,24 @@ export function Settings() {
   const [showRecipeMarket, setShowRecipeMarket] = useState(false);
   const { size: fontSize, setSize: setFontSize } = useFontSize();
   const [autoStartGateway, setAutoStartGateway] = useState(true);
-  const [gatewayRunning, setGatewayRunning] = useState(false);
-  const [gatewayEligible, setGatewayEligible] = useState(false);
-  const [gatewayDiskState, setGatewayDiskState] = useState<string | null>(null);
-  const [gatewayDiskExit, setGatewayDiskExit] = useState<string | null>(null);
-  const [gatewayEmbedSurvival, setGatewayEmbedSurvival] = useState(true);
-  const [gatewayStartError, setGatewayStartError] = useState<string | null>(null);
-  const [gatewayStarting, setGatewayStarting] = useState(false);
-  const [gatewayPlatforms, setGatewayPlatforms] = useState<Record<string, PlatformState> | null>(null);
-  const gatewayStartInFlight = useRef(false);
+  const {
+    running: gatewayRunning,
+    eligible: gatewayEligible,
+    diskState: gatewayDiskState,
+    diskExit: gatewayDiskExit,
+    embedSurvival: gatewayEmbedSurvival,
+    startError: gatewayStartError,
+    starting: gatewayStarting,
+    platforms: gatewayPlatforms,
+    start: startGateway,
+    stop: stopGateway,
+  } = useGatewayStatus();
 
   // Proxy settings
   const [proxyDetected, setProxyDetected] = useState<string | null>(null);
   const [proxyUseSystem, setProxyUseSystem] = useState(false);
   const [proxyCustom, setProxyCustom] = useState("");
   const [proxySaving, setProxySaving] = useState(false);
-
-  const refreshGatewayStatus = useCallback(async () => {
-    try {
-      const gs = await invoke<GatewayStatusResponse>("cmd_gateway_status");
-      setGatewayRunning(!!gs.running);
-      setGatewayEligible(!!gs.eligible);
-      setGatewayDiskState(gs.diskGatewayState ?? null);
-      setGatewayDiskExit(gs.diskExitReason ?? null);
-      setGatewayEmbedSurvival(gs.embeddedGatewayStartupSurvival === true);
-      setGatewayPlatforms(gs.platforms ?? null);
-    } catch {
-      /* optional */
-    }
-  }, []);
 
   useEffect(() => {
     (async () => {
@@ -132,16 +114,6 @@ export function Settings() {
         /* optional */
       }
       try {
-        const gs = await invoke<GatewayStatusResponse>("cmd_gateway_status");
-        setGatewayRunning(!!gs.running);
-        setGatewayEligible(!!gs.eligible);
-        setGatewayDiskState(gs.diskGatewayState ?? null);
-        setGatewayDiskExit(gs.diskExitReason ?? null);
-        setGatewayEmbedSurvival(gs.embeddedGatewayStartupSurvival === true);
-      } catch {
-        /* optional */
-      }
-      try {
         const ps = await invoke<ProxyStatusResponse>("cmd_proxy_status");
         setProxyDetected(ps.system.url);
         setProxyUseSystem(!!ps.settings.useSystem);
@@ -152,13 +124,6 @@ export function Settings() {
     })().catch(console.error);
   }, []);
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      if (document.visibilityState === "visible") void refreshGatewayStatus();
-    }, 2000);
-    return () => clearInterval(id);
-  }, [refreshGatewayStatus]);
-
   async function toggleAutoStartGateway(next: boolean) {
     try {
       await invoke("cmd_set_auto_start_gateway", { enabled: next });
@@ -167,36 +132,6 @@ export function Settings() {
       console.error(e);
     }
   }
-
-  const startGateway = useCallback(async () => {
-    if (gatewayStartInFlight.current) return;
-    gatewayStartInFlight.current = true;
-    setGatewayStarting(true);
-    setGatewayStartError(null);
-    try {
-      await invoke("cmd_gateway_start");
-      setGatewayStartError(null);
-      await refreshGatewayStatus();
-    } catch (e) {
-      console.error(e);
-      const msg = e instanceof Error ? e.message : String(e);
-      setGatewayStartError(msg);
-      await refreshGatewayStatus();
-    } finally {
-      gatewayStartInFlight.current = false;
-      setGatewayStarting(false);
-    }
-  }, [refreshGatewayStatus]);
-
-  const stopGateway = useCallback(async () => {
-    if (gatewayStartInFlight.current) return;
-    try {
-      await invoke("cmd_gateway_stop");
-      await refreshGatewayStatus();
-    } catch (e) {
-      console.error(e);
-    }
-  }, [refreshGatewayStatus]);
 
   const saveProxy = useCallback(async () => {
     setProxySaving(true);
@@ -545,6 +480,10 @@ export function Settings() {
 
         <Section icon={Store} title={t("settings.dingtalkTitle")} desc={t("settings.dingtalkLead")}>
           <DingTalkSettingsBlock />
+        </Section>
+
+        <Section icon={Store} title={t("settings.wecomTitle")} desc={t("settings.wecomLead")}>
+          <WeComSettingsBlock />
         </Section>
 
         <Section icon={Type} title={t("settings.fontTitle")} desc={t("settings.fontDesc")}>

@@ -26,6 +26,7 @@ mod qqbot_qr;
 mod secrets;
 mod telegram_env;
 mod tray;
+mod wecom_env;
 mod weixin_qr;
 
 use serde::Serialize;
@@ -129,6 +130,9 @@ pub fn run() {
             dingtalk_env::cmd_dingtalk_env_status,
             dingtalk_env::cmd_dingtalk_env_remove,
             dingtalk_env::cmd_dingtalk_save_config,
+            wecom_env::cmd_wecom_env_status,
+            wecom_env::cmd_wecom_env_remove,
+            wecom_env::cmd_wecom_save_config,
             proxy::cmd_proxy_status,
             proxy::cmd_proxy_save,
             weixin_qr::cmd_weixin_qr_cancel,
