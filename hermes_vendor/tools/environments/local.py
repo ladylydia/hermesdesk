@@ -158,9 +158,9 @@ def _find_bash() -> str:
     if custom and os.path.isfile(custom):
         return custom
 
-    found = shutil.which("bash")
-    if found:
-        return found
+    # NOTE: intentionally skip shutil.which("bash") on Windows — it picks
+    # up C:\Windows\System32\bash.exe (WSL stub), which cannot source hermes
+    # snapshots or cd into Windows paths from inside WSL.
 
     for candidate in (
         os.path.join(os.environ.get("ProgramFiles", r"C:\Program Files"), "Git", "bin", "bash.exe"),
