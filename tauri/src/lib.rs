@@ -38,6 +38,14 @@ use tauri::{Manager, RunEvent};
 use tokio::sync::Mutex;
 use url::Url;
 
+/// Fallback ``taskkill`` when the supervisor mutex is contended and
+/// ``try_lock`` cannot acquire it at shutdown.
+fn _emergency_kill_python_child() {
+    let _ = std::process::Command::new("taskkill")
+        .args(&["/f", "/im", "python.exe"])
+        .status();
+}
+
 pub struct AppState {
     pub supervisor: Arc<Mutex<Option<python_supervisor::Supervisor>>>,
     /// Optional ``hermes gateway run`` child (messaging adapters).
@@ -184,12 +192,16 @@ pub fn run() {
                     if let Some(s) = sup.take() {
                         let _ = s.shutdown();
                     }
+                } else {
+                    _emergency_kill_python_child();
                 }
                 let gw_lock = gateway.try_lock();
                 if let Ok(mut gw) = gw_lock {
                     if let Some(g) = gw.take() {
                         let _ = g.shutdown();
                     }
+                } else {
+                    _emergency_kill_python_child();
                 }
                 let wq_lock = weixin_qr.try_lock();
                 if let Ok(mut wq) = wq_lock {
@@ -521,7 +533,7 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
             .await
             .map_err(|e| anyhow::anyhow!(e))?;
         let supervisor =
-            python_supervisor::Supervisor::spawn(app.clone(), spawn_cfg.clone()).await?;
+            python_supervisor::Supervisor::spawn(spawn_cfg.clone()).await?;
 
         let port = supervisor.wait_for_port().await?;
         log::info!("python ready on port {port}");
@@ -568,7 +580,7 @@ pub(crate) async fn respawn_embedded_hermes_python(app: tauri::AppHandle) -> Res
 
     let spawn_cfg = resolve_spawn_config_for_children(&app).await?;
     let power_user = spawn_cfg.power_user;
-    let supervisor = python_supervisor::Supervisor::spawn(app.clone(), spawn_cfg.clone())
+    let supervisor = python_supervisor::Supervisor::spawn(spawn_cfg.clone())
         .await
         .map_err(|e| e.to_string())?;
     let port = supervisor
