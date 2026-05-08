@@ -17,14 +17,12 @@ Powered by the open-source **[Hermes Agent](https://github.com/NousResearch/herm
 
 ### At a glance
 
-
-|                        |                                                                                                                                                                                      |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Who it’s for**       | People who want a **native Windows app**, not a terminal or a browser tab                                                                                                            |
-| **How you pay for AI** | **BYO key** — onboarding helps you connect OpenRouter, OpenAI, Anthropic, or a custom base URL                                                                                       |
-| **Where files live**   | A **single workspace folder** (safe-by-default mental model)                                                                                                                         |
+|                        |                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Who it’s for**       | People who want a **native Windows app**, not a terminal or a browser tab                                                                                                                                                                                                           |
+| **How you pay for AI** | **BYO key** — onboarding helps you connect OpenRouter, OpenAI, Anthropic, or a custom base URL                                                                                                                                                                                      |
+| **Where files live**   | A **single workspace folder** (safe-by-default mental model)                                                                                                                                                                                                                        |
 | **What’s inside**      | **Tauri 2** shell (onboarding, **in-shell chat**, settings, **messaging-gateway controls**) + **embedded Python** for **Hermes web** (`desktop_entrypoint`) **and** a **second child** for **`gateway.run`** + **Hermes React** dashboard in **WebView2** when you open the console |
-
 
 > **Status: alpha (0.1+)** — the **end-to-end desktop path** is in place: onboarding → saved key → **shell chat** and/or full Hermes web UI, optional **multi-channel messaging gateway**, with workspace safety and **power user** gating. Expect ongoing polish. Architecture: **[docs/architecture.md](docs/architecture.md)**. Roadmap: **[docs/ROADMAP.md](docs/ROADMAP.md)**.
 
@@ -45,7 +43,7 @@ The gateway process loads the LLM API key from the same Windows Credential Manag
 - **In-shell chat** (`/chat`) in the Tauri host: sessions, copy on assistant messages, i18n (en/zh) for the shell UI.  
 - **Settings**: workspace copy differs for **normal** vs **power** users; toggling **power user** **restarts** the embedded Python child so `terminal` / `browser` / `code` tools match the switch.  
 - **Agent policy**: when power tools are off, a **system-prompt** overlay tells the model to **point users at Settings** instead of hallucinating shell access (see `python/overlays/desk_system_prompt.py`).  
-- **Branding**: `logo.png` under `web/public/`; Tauri `cargo tauri icon` generates `tauri/icons/`* (on Windows, if a file is locked, generate to a **temp** `-o` folder and copy — see [docs/troubleshooting.md](docs/troubleshooting.md) for loopback/AV issues).  
+- **Branding**: static launcher icons under `web/public/` (`kabuqina_na_blue.ico` and `kabuqina_na_blue_*.png`); Tauri `cargo tauri icon` can use `web/public/kabuqina_na_blue_256.png` to refresh `tauri/icons/` (on Windows, if a file is locked, generate to a **temp** `-o` folder and copy — see [docs/troubleshooting.md](docs/troubleshooting.md) for loopback/AV issues).  
 - **Control "Desk chat"** (in `hermes/web`) includes a **Copy** action on the assistant block for the embedded dashboard.
 - **Messaging gateway**: Telegram (token), Email (IMAP/SMTP), Weixin, QQ Bot, Feishu/Lark (QR binds); second Python process; LLM key from credential store.
 
@@ -125,7 +123,7 @@ cd tauri; cargo tauri dev
 # `hermes_core/artifacts/desktop-python/`. On Windows, prefer **cmd.exe** or **Developer
 # PowerShell** so MSVC / SDK env vars (e.g. `VCToolsVersion`) are set for vcpkg /
 # `pydantic-core` wheels; see [docs/embedded-python-bundled.md](docs/embedded-python-bundled.md).
-# Optional: `cd tauri` then `cargo tauri icon ..\web\public\logo.png` to refresh `tauri\icons\`
+# Optional: `cd tauri` then `cargo tauri icon ..\web\public\kabuqina_na_blue_256.png` to refresh `tauri\icons\`
 # (if Windows says the file is in use, `cargo tauri icon` with `-o` to a temp dir, then copy).
 # cargo tauri build
 # Output (typical): `target\release\bundle\msi\`, `target\release\*.exe`, sidecar + wheelhouse.
@@ -155,14 +153,12 @@ Hermes Agent is **MIT** as well; credit to **[Nous Research](https://nousresearc
 
 ### 适合谁
 
-
-|          |                                                                                                                                 |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| **目标用户** | 想要 **本机窗口 +托盘**，不想折腾终端、也不想长期挂在浏览器标签里                                                                                            |
-| **费用模型** | **自备 Key（BYO）** — 向导里可配 OpenRouter、OpenAI、Anthropic 或自定义 **Base URL**                                                           |
-| **文件边界** | 默认围绕 **一个工作区文件夹** 做事，降低误操作面                                                                                                     |
+|          |                                                                                                                                                                                         |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **目标用户** | 想要 **本机窗口 +托盘**，不想折腾终端、也不想长期挂在浏览器标签里                                                                                                                                                    |
+| **费用模型** | **自备 Key（BYO）** — 向导里可配 OpenRouter、OpenAI、Anthropic 或自定义 **Base URL**                                                                                                                   |
+| **文件边界** | 默认围绕 **一个工作区文件夹** 做事，降低误操作面                                                                                                                                                             |
 | **技术形态** | **Tauri 2 外壳**（引导、壳内 `/chat`、设置、**消息网关控制**）+ **内嵌 Python**：一路跑 **Hermes Web**（`desktop_entrypoint`），另一路 **`gateway.run`** 承载消息适配器；**WebView2** 中可开 **Hermes React**（`hermes/web`）为完整控制台 |
-
 
 > **阶段：内测 / 0.1+** — **端到端桌面**已通：引导 → 保存 key → **壳内对话** 与/或 **全功能 Hermes 界面**，可选 **多通道消息网关**，工作区与 **超级用户** 分权。安装包能跑，功能会持续打磨。架构见 **[docs/architecture.md](docs/architecture.md)**；**路线图**见 **[docs/ROADMAP.md](docs/ROADMAP.md)**。
 
@@ -183,7 +179,7 @@ Hermes Agent is **MIT** as well; credit to **[Nous Research](https://nousresearc
 - **壳内 /chat**：会话、**助手消息复制**、壳 UI 中/英。  
 - **设置**：普通/超级用户 **工作区文案** 不同；**超级用户** 会 **重启** 内嵌 Python 子进程，让 `terminal` / `browser` / `code` 等工具有无与开关一致。  
 - **智能体策略**：关超级用户时，**系统提示**（`python/overlays/desk_system_prompt.py`）引导用户去**设置**开启，避免假装有 shell。  
-- **品牌与图标**：`web/public/` 下的 `logo.png`；`cargo tauri icon` 生成 `tauri\icons\`；文件被占用时用临时 `-o` 再合并（[docs/troubleshooting.md](docs/troubleshooting.md)）。  
+- **品牌与图标**：壳静态资源在 `web/public/`（`kabuqina_na_blue.ico` 与 `kabuqina_na_blue_*.png`）；在 `tauri` 目录下可执行 `cargo tauri icon ..\web\public\kabuqina_na_blue_256.png` 更新 `tauri\icons\`；文件被占用时用临时 `-o` 再合并（[docs/troubleshooting.md](docs/troubleshooting.md)）。  
 - **控制台 Desk 对话**（`hermes/web`）助手区带 **复制**。
 - **消息网关**：Telegram（Token）、邮件（IMAP/SMTP）、微信、QQ、飞书/Lark（扫码绑定）；独立子进程；LLM key 走系统凭据。
 
@@ -244,7 +240,7 @@ cd tauri; cargo tauri dev
 # 发布 / 打 `.msi`（在仓库根目录；侧载 Python 来自 `hermes_core/artifacts/desktop-python/`）。
 # Windows 上建议在 **cmd** 或 **Developer PowerShell** 中构建，以便 MSVC / SDK 环境供 vcpkg
 # 与 `pydantic-core` 轮子；详见 [docs/embedded-python-bundled.md](docs/embedded-python-bundled.md)。
-# 可选：`cd tauri` 后 `cargo tauri icon ..\web\public\logo.png` 更新 `tauri\icons\`；若报文件占用，可 `-o` 到临时目录再拷贝。
+# 可选：`cd tauri` 后 `cargo tauri icon ..\web\public\kabuqina_na_blue_256.png` 更新 `tauri\icons\`；若报文件占用，可 `-o` 到临时目录再拷贝。
 # cargo tauri build
 # 常见产物：`target\release\bundle\msi\`、可执行与 sidecar + wheelhouse。
 ```
