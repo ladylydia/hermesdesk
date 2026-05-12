@@ -10,7 +10,7 @@
 
 | 项 | 要求 |
 |----|------|
-| HermesDesk | 待测版本（安装包或 dev） |
+| Kabuqina | 待测版本（安装包或 dev） |
 | 权限 | 可修改 `hermes-home/.env`；可重启网关 |
 | 账号 | `[待填写: Owner Telegram ID]`、`[待填写: 非 Owner Telegram ID]` |
 | 日志 | `hermesdesk.log` 可读取，日志级别 INFO 以上 |
@@ -212,7 +212,7 @@ curl -X POST http://localhost:<port>/webhook/feishu \
 # Owner 账号发送 /restart → 执行 → PASS
 
 # ====== TC-SR-08: .env 权限 ======
-# WSL: ls -l ~/.config/hermesdesk/hermes-home/.env → 权限 0600 → PASS
+# WSL: ls -l ~/.config/Kabuqina/hermes-home/.env → 权限 0600 → PASS
 ```
 
 ---

@@ -4,7 +4,7 @@
 > Power-user toggle"). Implementation tracked under m7-revised /
 > `docs/onboarding.md`.
 > Date: 2026-04-19
-> Author: Claude (HermesDesk implementation), responding to a written
+> Author: Claude (Kabuqina implementation), responding to a written
 > proposal by Kimi K2.5.
 
 ---
@@ -19,7 +19,7 @@ shouldn't have to think about workflows."
 A subsequent product review pushed back on this:
 
 > "ChatGPT Desktop and Claude Desktop both have no programmable
-> workflows. Zapier has them but is cloud-only. HermesDesk's
+> workflows. Zapier has them but is cloud-only. Kabuqina's
 > differentiator is exactly the *combination* of local files + AI
 > orchestration + zero deploy. Hiding Skills entirely throws that
 > differentiator away."
@@ -46,7 +46,7 @@ power user          all            any source        full editor
 
 ### 2026-05 amendment: desktop capability catalog
 
-HermesDesk now also exposes a desktop-shell **Capability Catalog** for
+Kabuqina now also exposes a desktop-shell **Capability Catalog** for
 Skills, toolsets, and dashboard plugins. This does not replace the L1/L2/L3
 action-tier model above; it maps the current desktop state into effective
 roles:
@@ -88,13 +88,13 @@ compile time and cannot be extended at runtime.
 mode)**
 
 A "Recipe Book" page in the dashboard. Lists Skills published by
-HermesDesk team or partners and signed with our Ed25519 signing key.
+Kabuqina team or partners and signed with our Ed25519 signing key.
 On install, the user sees a Chrome-extension-style permission sheet
 derived from the Skill's declarative manifest:
 
 ```
 Install: Weekly Report Pro v1.2 (by reports-team)
-Signature: ✅ HermesDesk official
+Signature: ✅ Kabuqina official
 
 This recipe will:
   📁 Read files in KabuqinaWork/reports/
@@ -117,7 +117,7 @@ that wasn't already on; it only enables the install/browse UI.
 
 Behind the existing `HERMESDESK_POWER_USER=1` toggle. Adds:
 - Install of unsigned third-party Skills, gated by a red-bordered
-  "this recipe has not been reviewed by HermesDesk" warning sheet.
+  "this recipe has not been reviewed by Kabuqina" warning sheet.
 - A YAML editor for hand-authoring Skills.
 - (v1.2+) The declarative recipe recorder — see Open Questions.
 
@@ -211,7 +211,7 @@ def install():
 
 Each helper module is a small, readable Python file under
 `python/helpers/`. They are reviewed and signed as part of the
-HermesDesk binary, not loaded from disk at runtime. The set is
+Kabuqina binary, not loaded from disk at runtime. The set is
 deliberately small and domain-focused: "do one Office task well",
 not "be a general-purpose runtime".
 

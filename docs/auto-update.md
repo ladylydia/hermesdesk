@@ -1,6 +1,6 @@
 # Auto-update
 
-HermesDesk uses Tauri's [updater plugin](https://v2.tauri.app/plugin/updater/),
+Kabuqina uses Tauri's [updater plugin](https://v2.tauri.app/plugin/updater/),
 pointed at GitHub Releases. Updates are signed with a separate Ed25519
 keypair (the "updater key") so a compromised CDN cannot push a malicious
 binary even if the cert is fine.
@@ -8,9 +8,9 @@ binary even if the cert is fine.
 ## One-time setup (project owner)
 
 ```powershell
-# Generates ~/.tauri/HermesDesk.key + HermesDesk.key.pub
+# Generates ~/.tauri/Kabuqina.key + Kabuqina.key.pub
 cargo install tauri-cli --version "^2" --locked
-cargo tauri signer generate -w ~/.tauri/HermesDesk.key
+cargo tauri signer generate -w ~/.tauri/Kabuqina.key
 ```
 
 - Put the **public key** into `tauri.conf.json#plugins.updater.pubkey`.
@@ -27,9 +27,9 @@ cargo tauri signer generate -w ~/.tauri/HermesDesk.key
 3. The action attaches `*.msi`, `*.msi.sig`, and `latest.json` to the
    GitHub release.
 4. Existing installs check
-   `https://github.com/your-org/hermesdesk/releases/latest/download/latest.json`
+   `https://github.com/your-org/Kabuqina/releases/latest/download/latest.json`
    on launch and from the tray menu, then prompt the user with a small
-   "Update HermesDesk?" dialog.
+   "Update Kabuqina?" dialog.
 
 ## User experience
 

@@ -11,11 +11,11 @@
 
 | 项 | 要求 |
 |----|------|
-| HermesDesk | 可启动版本（dev 或安装包） |
+| Kabuqina | 可启动版本（dev 或安装包） |
 | API Keys | `[待填写: DeepSeek API Key]`（有效）、`[待填写: 过期 DeepSeek API Key]`（用于异常测试） |
 | 网络 | 主路径：`api.deepseek.com`；可选多提供商测试时需对应端点（如 `openrouter.ai`） |
 | 构建环境 | PowerShell 5.1+ / 7.x；Python 3.11+；Rust toolchain（`cargo`） |
-| 代码仓库 | 完整的 hermesdesk repo（含 `hermes/` submodule） |
+| 代码仓库 | 完整的 Kabuqina repo（含 `hermes/` submodule） |
 
 ---
 
@@ -30,7 +30,7 @@
 | **Then** | 收到正常回复；HTTP 状态 200；响应中 `reasoning_content` 字段存在且非空；无 400/500 错误 |
 
 **手工执行步骤（步骤级）：**
-1. 启动 HermesDesk，完成 API Key 配置（DeepSeek）
+1. 启动 Kabuqina，完成 API Key 配置（DeepSeek）
 2. 在设置页确认当前模型为 `"DeepSeek v4 Flash"`
 3. 进入 `/chat`
 4. 发送消息：`"请用中文简要解释什么是机器学习"`
@@ -186,7 +186,7 @@ def test_expired_api_key_friendly_error(gateway):
    - 最终以 `"Build complete"` / `"Done"` 结束
 6. 验证退出码：`$LASTEXITCODE` → 应为 `0`
 7. 检查输出目录：`ls python/dist/runtime/` → 应包含 Python 解释器、site-packages 等
-8. 启动 HermesDesk → `/chat` 正常对话 → 验证 bundle 可用
+8. 启动 Kabuqina → `/chat` 正常对话 → 验证 bundle 可用
 
 ---
 
@@ -205,7 +205,7 @@ def test_expired_api_key_friendly_error(gateway):
    - 应看到 `Patch already applied, skipping.` 或类似提示
    - 不执行重复的 patch 操作
 4. 验证退出码 0
-5. 验证 HermesDesk 仍可正常启动
+5. 验证 Kabuqina 仍可正常启动
 
 ---
 
@@ -247,9 +247,9 @@ def test_expired_api_key_friendly_error(gateway):
 1. 清理（可选）：`cargo clean`
 2. 终端执行 `cargo tauri dev`
 3. 观察编译过程：
-   - Rust 编译：`Compiling hermesdesk v0.x.x`
+   - Rust 编译：`Compiling Kabuqina v0.x.x`
    - 依赖下载/编译无报错
-   - 最终以 `Running hermesdesk` 结束
+   - 最终以 `Running Kabuqina` 结束
 4. 窗口自动打开
 5. 等待前端资源加载（Vite）→ Splash → Onboarding（首次）或直接到 `/chat`
 6. 验证页面可交互

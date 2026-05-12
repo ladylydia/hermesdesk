@@ -10,7 +10,7 @@
 | 项 | 要求 |
 |----|------|
 | OS | Windows 10/11（测试网关进程管理） |
-| HermesDesk | 最新安装包或 `cargo tauri dev` 启动 |
+| Kabuqina | 最新安装包或 `cargo tauri dev` 启动 |
 | 网络 | 可访问 Telegram API / 微信服务器 / 飞书服务器 / QQ 服务器 |
 | 测试账号 | `[待填写: Telegram Test Bot Token]` |
 | | `[待填写: 微信 Route C Test QR 绑定账号]` |
@@ -27,16 +27,16 @@
 
 | 属性 | 内容 |
 |------|------|
-| **Given** | HermesDesk 已启动，网关已启动，Telegram Bot Token 已配置；用户 A 从未与 Bot 交互过 |
+| **Given** | Kabuqina 已启动，网关已启动，Telegram Bot Token 已配置；用户 A 从未与 Bot 交互过 |
 | **When** | 用户 A 在 Telegram 私聊中向 Bot 发送任意消息（如 `"Hello"`） |
-| **Then** | Bot 回复一条包含配对码（pairing code）的消息；配对码格式为 6 位数字；同时 HermesDesk 设置页 → 配对审批列表出现该用户的待审批请求 |
+| **Then** | Bot 回复一条包含配对码（pairing code）的消息；配对码格式为 6 位数字；同时 Kabuqina 设置页 → 配对审批列表出现该用户的待审批请求 |
 
 **手工执行步骤：**
-1. 确保 HermesDesk 壳内设置页 → Telegram 区块已保存有效的 Bot Token
+1. 确保 Kabuqina 壳内设置页 → Telegram 区块已保存有效的 Bot Token
 2. 点击"启动网关"，等待状态变为"运行中"
 3. 使用一个全新的 Telegram 账号（从未与该 Bot 私聊过）发送 `"Hello"`
 4. 验证 Bot 是否在 5 秒内回复了包含 6 位配对码的消息
-5. 切换回 HermesDesk 设置页 → 配对审批，验证列表中出现该用户的新请求
+5. 切换回 Kabuqina 设置页 → 配对审批，验证列表中出现该用户的新请求
 
 **自动化模板：**
 ```python
@@ -118,7 +118,7 @@ assert hermesdesk_pending_list_contains(new_user_id)
 
 | 属性 | 内容 |
 |------|------|
-| **Given** | HermesDesk 设置页已打开；微信 Route C 选项可见 |
+| **Given** | Kabuqina 设置页已打开；微信 Route C 选项可见 |
 | **When** | 点击"扫码绑定" → 弹出 QR 码 → 使用微信扫描 |
 | **Then** | 扫码成功后设置页显示"已绑定"；`.env` 中写入微信凭证 |
 
@@ -212,7 +212,7 @@ assert hermesdesk_pending_list_contains(new_user_id)
 
 | 属性 | 内容 |
 |------|------|
-| **Given** | 全新安装 HermesDesk；`.env` 中无 `TELEGRAM_REQUIRE_MENTION` 设置 |
+| **Given** | 全新安装 Kabuqina；`.env` 中无 `TELEGRAM_REQUIRE_MENTION` 设置 |
 | **When** | 将 Bot 加入群聊，群成员发送普通消息（无 @mention） |
 | **Then** | Bot 不回复 |
 
@@ -344,7 +344,7 @@ assert hermesdesk_pending_list_contains(new_user_id)
 | 属性 | 内容 |
 |------|------|
 | **Given** | 3 个不同用户已发送配对请求（尚未审批） |
-| **When** | 打开 HermesDesk 设置页 → 配对审批区块 |
+| **When** | 打开 Kabuqina 设置页 → 配对审批区块 |
 | **Then** | 列表显示 3 条待审批请求；每条显示用户名/ID、平台来源（Telegram/微信/QQ）、请求时间；按时间从早到晚排序 |
 
 **边界：**

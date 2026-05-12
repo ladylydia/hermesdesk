@@ -1,4 +1,4 @@
-# HermesDesk 测试方案
+# Kabuqina 测试方案
 
 > 覆盖范围：Gateway 消息渠道、安全防护、前端交互、API/LLM、构建部署  
 > 用途：供 AI 生成详细测试用例（given/when/then 格式），每项可独立展开

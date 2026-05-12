@@ -1,6 +1,6 @@
-# HermesDesk：消息网关接入说明（路线对比 · 个微深度 · 当前落地）
+# Kabuqina：消息网关接入说明（路线对比 · 个微深度 · 当前落地）
 
-本文档说明：为什么 Desk 选用 **路线 C**（本地 Python worker + Tauri IPC）、**个人微信（Weixin / iLink）** 在上游中的位置，以及 **当前 HermesDesk 已交付** 的四类消息渠道实现。前半为设计对照，后半为与代码一致的产品/工程事实。
+本文档说明：为什么 Desk 选用 **路线 C**（本地 Python worker + Tauri IPC）、**个人微信（Weixin / iLink）** 在上游中的位置，以及 **当前 Kabuqina 已交付** 的四类消息渠道实现。前半为设计对照，后半为与代码一致的产品/工程事实。
 
 ---
 
@@ -33,7 +33,7 @@ Hermes **本地 Web**（`hermes_cli/web_server.py`）对网关的暴露主要是
 
 ---
 
-## 3. HermesDesk 当前结论（与实现对齐）
+## 3. Kabuqina 当前结论（与实现对齐）
 
 以下为 **已实现** 的聚合结论，取代旧版「第一阶段仅个微、不做 QQ/飞书」的排期表述。
 
@@ -89,7 +89,7 @@ Hermes **本地 Web**（`hermes_cli/web_server.py`）对网关的暴露主要是
 
 ---
 
-## 8. HermesDesk 实现一览：网关子进程 · 扫码/token · 设置页
+## 8. Kabuqina 实现一览：网关子进程 · 扫码/token · 设置页
 
 ### 8.1 长期网关进程
 

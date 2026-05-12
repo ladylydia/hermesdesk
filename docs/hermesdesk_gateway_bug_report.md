@@ -1,4 +1,4 @@
-# HermesDesk Gateway 启动问题排查报告
+# Kabuqina Gateway 启动问题排查报告
 
 > **存档说明（2026-04）：** 本文记录一次集中排查过程；**当前权威排障**见 [`troubleshooting.md`](troubleshooting.md) §§12–14（启动命令、`PYTHONPATH`、`build_bundle` 与子模块同步）。实现以 `tauri/src/gateway_supervisor.rs` 为准。
 
@@ -241,7 +241,7 @@ TELEGRAM_BOT_TOKEN=your_bot_token_here
 ```powershell
 cd tauri/target/release/runtime
 $env:PYTHONPATH = ".\hermes;.\site-packages"
-$env:HERMES_HOME = "$env:APPDATA\hermesdesk\hermes-home"
+$env:HERMES_HOME = "$env:APPDATA\Kabuqina\hermes-home"
 .\python\python.exe -m hermes_cli.gateway.run
 ```
 
@@ -258,9 +258,9 @@ $env:HERMES_HOME = "$env:APPDATA\hermesdesk\hermes-home"
 | Python Gateway 入口 | `runtime/hermes/hermes_cli/gateway/run.py` |
 | Gateway 包 init | `runtime/hermes/hermes_cli/gateway/__init__.py` |
 | Hermes 包 init | `runtime/hermes/__init__.py` |
-| 用户配置 | `%APPDATA%/hermesdesk/hermes-home/.env` |
-| 日志目录 | `%APPDATA%/hermesdesk/hermes-home/logs/` |
-| 编译输出 | `tauri/target/release/hermesdesk.exe` |
+| 用户配置 | `%APPDATA%/Kabuqina/hermes-home/.env` |
+| 日志目录 | `%APPDATA%/Kabuqina/hermes-home/logs/` |
+| 编译输出 | `tauri/target/release/Kabuqina.exe` |
 
 ---
 

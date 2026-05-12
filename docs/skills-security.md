@@ -1,11 +1,11 @@
 # Skills, recipes, and L1 helper security
 
 This document is the public-facing trust story for anything we call a
-**Skill**, **Recipe**, or **built-in helper** in HermesDesk. It expands the
+**Skill**, **Recipe**, or **built-in helper** in Kabuqina. It expands the
 “Security model” section of
 [skills-design-decision.md](skills-design-decision.md) (ADR, accepted).
 
-## Layers HermesDesk already had
+## Layers Kabuqina already had
 
 These are unchanged; Skills and helpers must coexist with them:
 
@@ -26,9 +26,9 @@ Python.
 
 So we **do not** expose arbitrary code execution for L1 “use” tier features.
 
-## Quick Actions UI (HermesDesk)
+## Quick Actions UI (Kabuqina)
 
-When the dashboard is served from an embedded HermesDesk runtime, the web
+When the dashboard is served from an embedded Kabuqina runtime, the web
 shell injects `window.__HERMESDESK__` and shows a **Recipes / 快捷指令** strip
 above the page content. Buttons call `POST /api/hermesdesk/builtin-helper`,
 which dispatches to `run_builtin_helper` on the server (same whitelist as
@@ -72,7 +72,7 @@ destructive actions.
 - **L2** — Signed Skills from an official market; install-time permission
   sheet from declarative manifest (see ADR table).
 - **L3** — Power-user only: unsigned Skills, editors, and dangerous tools
-  (`terminal`, `code_execution`, `browser`) per existing HermesDesk policy.
+  (`terminal`, `code_execution`, `browser`) per existing Kabuqina policy.
 
 ## Reporting issues
 

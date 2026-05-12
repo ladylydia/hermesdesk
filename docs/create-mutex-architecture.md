@@ -115,9 +115,9 @@ print('release:', release_gateway_runtime_lock())  # None
 
 ## 6. Upstream Impact
 
-- `lock_win32.py` is a HermesDesk-only file. Upstream hermes never touches it.
-- `status.py` changes are a conditional import + removal of HermesDesk-specific workarounds. Re-merging upstream changes requires zero conflict resolution.
-- `run.py` is restored to near-upstream state (only the parallel startup + concurrent write protection remain as HermesDesk additions).
+- `lock_win32.py` is a Kabuqina-only file. Upstream hermes never touches it.
+- `status.py` changes are a conditional import + removal of Kabuqina-specific workarounds. Re-merging upstream changes requires zero conflict resolution.
+- `run.py` is restored to near-upstream state (only the parallel startup + concurrent write protection remain as Kabuqina additions).
 
 ## 7. Related Documents
 

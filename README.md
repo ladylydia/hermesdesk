@@ -1,11 +1,11 @@
-# HermesDesk
+# Kabuqina
 
 **A friendly Windows desktop AI assistant** — double-click install, guided setup, your own API key.  
 Powered by the open-source **[Hermes Agent](https://github.com/NousResearch/hermes-agent)**.
 
 [License: MIT](LICENSE)
-[Platform](https://github.com/ladylydia/hermesdesk)
-[Status](https://github.com/ladylydia/hermesdesk)
+[Platform](https://github.com/ladylydia/Kabuqina)
+[Status](https://github.com/ladylydia/Kabuqina)
 
 [English](#english) · [简体中文](#简体中文)
 
@@ -26,7 +26,7 @@ Powered by the open-source **[Hermes Agent](https://github.com/NousResearch/herm
 
 > **Status: alpha (0.1+)** — the **end-to-end desktop path** is in place: onboarding → saved key → **shell chat** and/or full Hermes web UI, optional **multi-channel messaging gateway**, with workspace safety and **power user** gating. Expect ongoing polish. Architecture: **[docs/architecture.md](docs/architecture.md)**. Roadmap: **[docs/ROADMAP.md](docs/ROADMAP.md)**.
 
-**Messaging gateway (shipping):** HermesDesk supervises Hermes’ **`python -m gateway.run`** alongside the web assistant. Five adapters are wired through onboarding / Settings with desk-tested flows:
+**Messaging gateway (shipping):** Kabuqina supervises Hermes’ **`python -m gateway.run`** alongside the web assistant. Five adapters are wired through onboarding / Settings with desk-tested flows:
 
 - **Telegram** — paste **BotFather** token in-app; writes `TELEGRAM_BOT_TOKEN` (optional allowlists via Hermes Keys).
 - **Email (IMAP/SMTP)** — mailbox + server fields in-app; writes `EMAIL_ADDRESS`, `EMAIL_PASSWORD`, `EMAIL_IMAP_HOST`, and `EMAIL_SMTP_HOST` to `hermes-home/.env` (optional ports / recipient policy when the wizard exposes them).
@@ -89,7 +89,7 @@ The gateway process loads the LLM API key from the same Windows Credential Manag
 **Expand: repo layout**
 
 ```
-hermesdesk/
+Kabuqina/
   tauri/        Tauri 2 shell
   python/       Bundle scripts, overlays, policy layer, tests
   web/          Shell onboarding + settings (Hermes UI lives under hermes_core/web)
@@ -102,8 +102,8 @@ hermesdesk/
 **Needs:** Rust **1.80+**, Node **20+**, PowerShell **7+**.
 
 ```powershell
-git clone https://github.com/ladylydia/hermesdesk.git
-cd hermesdesk
+git clone https://github.com/ladylydia/Kabuqina.git
+cd Kabuqina
 
 # Python runtime bundle (downloads standalone CPython the first time)
 .\python\build_bundle.ps1
@@ -145,11 +145,11 @@ Hermes Agent is **MIT** as well; credit to **[Nous Research](https://nousresearc
 
 ---
 
-## 简体中文
+# 卡布奇娜
 
 ### 一句话
 
-**HermesDesk** 是在 **Windows** 上用的 **桌面版 AI 助手**：像普通软件一样安装打开，自带引导配置 **自己的大模型 API Key**，底层跑开源的 **[Hermes Agent](https://github.com/NousResearch/hermes-agent)**。
+**卡布奇娜**是在 **Windows** 上用的 **桌面版 AI 助手**：像普通软件一样安装打开，自带引导配置 **自己的大模型 API Key**，底层跑开源的 **[Hermes Agent](https://github.com/NousResearch/hermes-agent)**。
 
 ### 适合谁
 
@@ -162,7 +162,7 @@ Hermes Agent is **MIT** as well; credit to **[Nous Research](https://nousresearc
 
 > **阶段：内测 / 0.1+** — **端到端桌面**已通：引导 → 保存 key → **壳内对话** 与/或 **全功能 Hermes 界面**，可选 **多通道消息网关**，工作区与 **超级用户** 分权。安装包能跑，功能会持续打磨。架构见 **[docs/architecture.md](docs/architecture.md)**；**路线图**见 **[docs/ROADMAP.md](docs/ROADMAP.md)**。
 
-**消息网关（已落地）：** HermesDesk 在本地 **同时托管** Hermes 的 **`python -m gateway.run`** 子进程（与桌面 Web 助手分离）。当前在引导/设置里走通 Desk 测试的 **五条** 渠道：
+**消息网关（已落地）：** Kabuqina 在本地 **同时托管** Hermes 的 **`python -m gateway.run`** 子进程（与桌面 Web 助手分离）。当前在引导/设置里走通 Desk 测试的 **五条** 渠道：
 
 - **Telegram** — 在应用中粘贴 **@BotFather** 的 bot token；写入 `TELEGRAM_BOT_TOKEN`（可选白名单等在 Hermes Keys 中维护）。
 - **邮件（IMAP/SMTP）** — 在应用中配置邮箱与服务端字段；写入 `EMAIL_ADDRESS`、`EMAIL_PASSWORD`、`EMAIL_IMAP_HOST`、`EMAIL_SMTP_HOST` 至 `hermes-home/.env`（向导中若暴露端口、收件策略等按需填写）。
@@ -208,7 +208,7 @@ Hermes Agent is **MIT** as well; credit to **[Nous Research](https://nousresearc
 **展开：目录结构**
 
 ```
-hermesdesk/
+Kabuqina/
   tauri/        桌面壳（Rust + Tauri 2）
   python/     打包脚本、运行时 overlay、policy 层、测试
   web/        壳侧引导与设置（Hermes 仪表盘在 hermes_core/web）
@@ -221,8 +221,8 @@ hermesdesk/
 **准备：** Rust **1.80+**、Node **20+**、PowerShell **7+**。
 
 ```powershell
-git clone https://github.com/ladylylia/hermesdesk.git
-cd hermesdesk
+git clone https://github.com/ladylydia/Kabuqina.git
+cd Kabuqina
 
 # 打 Python 运行时包（首次会下载独立 CPython）
 .\python\build_bundle.ps1

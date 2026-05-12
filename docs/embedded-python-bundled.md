@@ -1,6 +1,6 @@
 # Embedded Python bundle (Windows)
 
-HermesDesk ships a **standalone CPython** plus pruned **`site-packages`**, the **`hermes/`** subtree, **`overlays/`**, and launcher scripts under **`python/dist/runtime/`**. Tauri copies this tree into the build output (`tauri/target/.../runtime`) for dev and release.
+Kabuqina ships a **standalone CPython** plus pruned **`site-packages`**, the **`hermes/`** subtree, **`overlays/`**, and launcher scripts under **`python/dist/runtime/`**. Tauri copies this tree into the build output (`tauri/target/.../runtime`) for dev and release.
 
 ## How to build
 
@@ -21,4 +21,4 @@ Release and some dev builds compile or pull wheels (e.g. **`pydantic-core`**) th
 ## Related
 
 - [`architecture.md`](architecture.md) — `desktop_entrypoint.py` vs `python -m gateway.run`
-- [`hermesdesk-capability-matrix.md`](hermesdesk-capability-matrix.md)
+- [`Kabuqina-capability-matrix.md`](Kabuqina-capability-matrix.md)

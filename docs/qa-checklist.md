@@ -6,7 +6,7 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 - [ ] **Hermes submodule** is present and at the commit expected for this build. After clone, run `git submodule update --init --recursive`. Release notes and `CHANGES_*.md` may call out a specific **hermes** revision; a mismatch can break the Python bundle or the embedded web UI.
 - [ ] If you build from source, use the same **tag or branch** the release is cut from, not a random main checkout.
-- [ ] **Windows Defender / real-time scan** can hold file locks during bundling or first run (symptoms: `os error 32`, failed copy, or `python.exe` / build scripts failing to overwrite files). For **local dev** or **repeated bundle builds**, add exclusions for the repo path and, if needed, `%LOCALAPPDATA%\HermesDesk` and your `python\dist` build output—then retry from a clean tree if a run was interrupted mid-write.
+- [ ] **Windows Defender / real-time scan** can hold file locks during bundling or first run (symptoms: `os error 32`, failed copy, or `python.exe` / build scripts failing to overwrite files). For **local dev** or **repeated bundle builds**, add exclusions for the repo path and, if needed, `%LOCALAPPDATA%\com.kabuqina.app` and your `python\dist` build output—then retry from a clean tree if a run was interrupted mid-write.
 
 ## Target images
 
@@ -27,14 +27,14 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 - [ ] Download `.msi` from GitHub Releases over a normal browser
 - [ ] SmartScreen status:
-  - [ ] OV-only build: shows "More info" -> publisher = HermesDesk
+  - [ ] OV-only build: shows "More info" -> publisher = Kabuqina
   - [ ] After warm-up: no warning at all
 - [ ] Double-click the `.msi`
   - [ ] No UAC prompt (per-user install)
   - [ ] Finishes within 60s on a clean SSD
-  - [ ] Start Menu has "HermesDesk"
+  - [ ] Start Menu has "Kabuqina"
   - [ ] No desktop shortcut unless we ship one (we don't, by design)
-- [ ] Disk usage at `%LOCALAPPDATA%\HermesDesk` is between 80 and 200 MB
+- [ ] Disk usage at `%LOCALAPPDATA%\com.kabuqina.app` is between 80 and 200 MB
 
 ## B. First launch (cold)
 
@@ -44,7 +44,7 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 - [ ] Optional: user chose **configure API later** → Splash may route to **`/chat`** without Credential Manager key (limited flows — see shell `apiKeyGate`)
 - [ ] No console window flashes or stays open
 - [ ] Tray icon appears
-- [ ] `%LOCALAPPDATA%\HermesDesk\logs\hermesdesk.log` exists and contains a line like `python ready on port` with a port number (Hermes web stack is up)
+- [ ] `%LOCALAPPDATA%\com.kabuqina.app\logs\hermesdesk.log` exists and contains a line like `python ready on port` with a port number (Hermes web stack is up)
 
 ## C. Onboarding wizard (zero-jargon happy path)
 
@@ -53,8 +53,8 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 - [ ] Provider signup link opens **DeepSeek** (or chosen provider) in default browser, **not** in-app
 - [ ] Paste a known-good key, hit "Save and continue":
   - [ ] Validation succeeds within a few seconds
-  - [ ] No plaintext key in `%LOCALAPPDATA%\HermesDesk\settings.json`
-  - [ ] `cmdkey /list:HermesDesk*` lists the credential
+  - [ ] No plaintext key in `%LOCALAPPDATA%\com.kabuqina.app\settings.json`
+  - [ ] `cmdkey /list:Kabuqina*` lists the credential
 - [ ] Pick a vibe -> **Done** page renders
 - [ ] "Open workspace folder" opens `Documents\KabuqinaWork` in Explorer
 - [ ] Done primary CTA opens **`/chat`** or **dashboard** per build UX; extended wizard optionally completes **one** messaging channel (Weixin / QQ / Feishu / Telegram)
@@ -99,9 +99,9 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 ## I. Uninstall
 
-- [ ] Settings -> Apps -> HermesDesk -> Uninstall
+- [ ] Settings -> Apps -> Kabuqina -> Uninstall
 - [ ] No UAC prompt
-- [ ] Removes `%LOCALAPPDATA%\HermesDesk\` (or leaves only the workspace folder under `Documents\` - confirm we never delete user docs)
+- [ ] Removes `%LOCALAPPDATA%\com.kabuqina.app\` (or leaves only the workspace folder under `Documents\` - confirm we never delete user docs)
 - [ ] Tray icon disappears
 - [ ] Credential Manager entry is removed (or, if not, `Sign out` did it before uninstall and we documented the split)
 

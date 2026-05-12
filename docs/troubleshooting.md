@@ -1,7 +1,7 @@
-# HermesDesk troubleshooting & gotchas
+# Kabuqina troubleshooting & gotchas
 
 A field log of every non-obvious failure mode we hit while bringing
-HermesDesk up on Windows, with the root cause and where the fix lives.
+Kabuqina up on Windows, with the root cause and where the fix lives.
 Written for the next person (future us, a contributor, or a user filing
 a bug report) so we don't burn the same hours twice.
 
@@ -248,8 +248,9 @@ should re-confirm every dangerous command).
 
 **Symptom**
 
-* Smoke test logs `Failed to load permanent allowlist: HermesDesk
-  workspace jail blocked write to C:\Users\X13\.hermes`.
+* Smoke test logs `Failed to load permanent allowlist: …` alongside
+  **`HermesDesk path policy blocked`** messages when Hermes tries to write
+  under legacy paths such as `C:\Users\X13\.hermes`.
 * Hermes silently falls back to defaults; user-configured allowlist
   doesn't persist.
 
@@ -262,7 +263,7 @@ which excludes `~/.hermes`.
 **Fix** — two-part:
 
 * `python/src/desktop_entrypoint.py` — set
-  `os.environ["HERMES_HOME"] = "%LOCALAPPDATA%\\HermesDesk\\hermes-home"`
+  `os.environ["HERMES_HOME"] = "%LOCALAPPDATA%\com.kabuqina.app\\hermes-home"`
   *before* importing anything from `hermes_cli` (the import reads it
   via `hermes_constants.get_hermes_home()`).
 * `python/overlays/workspace_jail.py` — add `HERMES_HOME` to the
@@ -427,7 +428,7 @@ then, this is a contributor-onboarding paragraph in `README.md`.
 
 **Symptom**
 
-* `Finished release profile` and `Built application at: ...\hermesdesk.exe` succeed.
+* `Finished release profile` and `Built application at: ...\kabuqina.exe` succeed.
 * Then: `Downloading https://go.microsoft.com/fwlink/p/?LinkId=2124703`
 * `Error failed to bundle project` with `io: 不知道这样的主机。 (os error 11001)` (or a host-not-found message in English).
 
@@ -447,12 +448,12 @@ With **`embedBootstrapper`**, the WiX step **downloads** the WebView2 bootstrapp
 
 **Symptom**
 
-* HermesDesk **Settings → Messaging gateway** shows **Start failed: Gateway exited during startup (exit code: 1)** (often within a few seconds of clicking **Start gateway**).
+* Kabuqina **Settings → Messaging gateway** shows **Start failed: Gateway exited during startup (exit code: 1)** (often within a few seconds of clicking **Start gateway**).
 * Hermes **Keys (/env)** already lists several `WEIXIN_*` variables and the desk UI may show Weixin as **configured** — but the gateway child still dies immediately.
 
 **Root cause (most common on a dev machine)**
 
-HermesDesk spawns a **second** embedded Python process:
+Kabuqina spawns a **second** embedded Python process:
 
 `python.exe -m gateway.run`
 
@@ -462,9 +463,9 @@ Upstream fixes (e.g. *keep the gateway process alive after retryable first-conne
 
 **Fix**
 
-1. Quit HermesDesk (unlock files under `python/dist/runtime` on Windows).
+1. Quit Kabuqina (unlock files under `python/dist/runtime` on Windows).
 2. From repo root: **`.\python\build_bundle.ps1`**
-3. Rebuild / relaunch HermesDesk so it uses the refreshed `python/dist/runtime`.
+3. Rebuild / relaunch Kabuqina so it uses the refreshed `python/dist/runtime`.
 
 Then read **`hermes-home/logs/gateway.log`** and **`hermes-home/gateway_state.json`** if anything still fails (wrong `WEIXIN_BASE_URL`, token revoked, duplicate gateway PID file, etc.).
 
@@ -483,7 +484,7 @@ Then read **`hermes-home/logs/gateway.log`** and **`hermes-home/gateway_state.js
 
 **Symptom**
 
-* After HermesDesk **Route C** QR login (or CLI `hermes gateway setup` Weixin flow), the gateway still behaves like the **previous** Weixin account or token.
+* After Kabuqina **Route C** QR login (or CLI `hermes gateway setup` Weixin flow), the gateway still behaves like the **previous** Weixin account or token.
 
 **Root cause**
 
@@ -523,7 +524,7 @@ The gateway child does **not** run `desktop_entrypoint.py`; it relies on **`PYTH
 3. Manual probe:
 
 ```powershell
-$rt = "D:\project\hermesdesk\python\dist\runtime"
+$rt = "D:\project\Kabuqina\python\dist\runtime"
 $env:PYTHONPATH = "$rt\site-packages;$rt\hermes"
 Set-Location $rt
 .\python\python.exe -c "import gateway.run; import hermes_cli; print('OK')"
@@ -594,22 +595,22 @@ Get-NetTCPConnection -LocalPort 5173 -State Listen -ErrorAction SilentlyContinue
 Select-String -Path .tauri-dev.log -Pattern "bridge accepted|bridge req"
 
 # 4. Did Hermes' SPA build land where mount_spa() expects?
-Test-Path D:\project\hermesdesk\hermes\hermes_cli\web_dist\index.html
+Test-Path D:\project\Kabuqina\hermes\hermes_cli\web_dist\index.html
 
 # 5. Probe Hermes directly (bypass Tauri to isolate UI vs API issues)
 $port = (Select-String -Path .tauri-dev.log -Pattern "loading http://127.0.0.1:(\d+)").Matches.Groups[1].Value
 Invoke-WebRequest "http://127.0.0.1:$port/api/status" -UseBasicParsing -Proxy $null
 
 # 6. Does the *bundled* gateway include the first-connect survival patch?
-#    (HermesDesk checks for these substrings in hermes/gateway/run.py — both must be present.)
+#    (Kabuqina checks for these substrings in hermes/gateway/run.py — both must be present.)
 $runPy = Join-Path (Get-Location) "python\dist\runtime\hermes\gateway\run.py"
 $r = Get-Content -Raw -LiteralPath $runPy -ErrorAction SilentlyContinue
 [bool]($r -and ($r.Contains("keep the process alive") -and $r.Contains("_platform_reconnect_watcher")))
 
 # 7. Tail the gateway log under the desk hermes-home (adjust HERMESDESK_DATA_DIR if you override it)
-# Typical per-user path (Tauri `identifier` com.hermesdesk.app → under %LOCALAPPDATA%).
+# Typical per-user path (Tauri `identifier` com.kabuqina.app → under %LOCALAPPDATA%).
 # If unsure, open Settings with Power user mode and read the workspace/data paths shown there.
-$hh = Join-Path $env:LOCALAPPDATA "com.hermesdesk.app\hermes-home"
+$hh = Join-Path $env:LOCALAPPDATA "com.kabuqina.app\hermes-home"
 Get-Content -LiteralPath (Join-Path $hh "logs\gateway.log") -Tail 40 -ErrorAction SilentlyContinue
 ```
 

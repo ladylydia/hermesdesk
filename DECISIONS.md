@@ -8,21 +8,21 @@ explicit reasoning to alter.
 
 | Field          | Value                                                    |
 |----------------|----------------------------------------------------------|
-| Working name   | **HermesDesk**                                           |
-| Bundle id      | `com.hermesdesk.app`                                     |
-| Install target | Per-user, `%LOCALAPPDATA%\HermesDesk` (no admin needed)  |
+| Working name   | **Kabuqina**                                           |
+| Bundle id      | `com.kabuqina.app`                                     |
+| Install target | Per-user, `%LOCALAPPDATA%\com.kabuqina.app` (no admin needed)  |
 | License        | MIT                                                      |
 | Upstream       | Frozen snapshot at `hermes_core/` (from `NousResearch/hermes-agent` pinned to `v0.10.0`). No submodule, no automatic sync. |
 | Tagline        | "A friendly AI helper for your PC. No setup, no terminal." |
 
-The "HermesDesk" name is provisional. Trademark check is pending — see
+The "Kabuqina" name is provisional. Trademark check is pending — see
 `docs/branding-todo.md` (not yet written).
 
 ## De-patching migration (2026-05-03)
 
 | Question | Decision |
 |----------|----------|
-| Product relationship | **Independent.** HermesDesk is a standalone monorepo. The upstream `NousResearch/hermes-agent` is frozen at `hermes_core/`. |
+| Product relationship | **Independent.** Kabuqina is a standalone monorepo. The upstream `NousResearch/hermes-agent` is frozen at `hermes_core/`. |
 | Upstream sync | **Cherry-pick only.** Security advisories, CVEs, and provider API breaking changes are manually cherry-picked and logged in this file. No batch merges. |
 | Gateway platforms | All 6 (Weixin, QQ Bot, Feishu/Lark, Telegram, DingTalk, WeCom) stay in the onboarding UI. Weixin and Feishu are feature-flagged at the `GatewayPolicy` level. |
 | Architecture | `agent_core` (frozen Hermes) + `desktop_policy` (6 injected policy objects). Overlays are transitional and tagged `# DEPRECATED`. |
@@ -75,12 +75,12 @@ behind the "Power user" toggle, off by default.
 | `tools/transcription_tools.py`           | Voice memo transcription                  |
 | `tools/memory_tool.py`                   | Persistent memory                         |
 | `tools/skills_tool.py`                   | Skills system (core differentiator) — see [docs/skills-design-decision.md](docs/skills-design-decision.md) for tiering model |
-| `run_builtin_helper` (HermesDesk overlay) | L1 only: whitelist dispatch to bundled `python/helpers/*` — see [docs/skills-security.md](docs/skills-security.md); **not** generic `code_execution` |
+| `run_builtin_helper` (Kabuqina overlay) | L1 only: whitelist dispatch to bundled `python/helpers/*` — see [docs/skills-security.md](docs/skills-security.md); **not** generic `code_execution` |
 | `tools/todo_tool.py`                     | Lightweight todo list                     |
 | `tools/vision_tools.py`                  | Image understanding                       |
 | `tools/clarify_tool.py`                  | Ask clarifying questions                  |
 
-**HermesDesk Skills — recipe market strip (v1):** Off by default. The shell **Settings** app stores `hermesdesk.show_recipe_market` and mirrors it to `hermesdesk_show_recipe_market.txt` under `%LOCALAPPDATA%\HermesDesk\` so the embedded web `/api/status` and **Skills** page can show a **UI-only** placeholder banner without restarting Python. No remote catalog in v1.
+**Kabuqina Skills — recipe market strip (v1):** Off by default. The shell **Settings** app stores `hermesdesk.show_recipe_market` and mirrors it to `hermesdesk_show_recipe_market.txt` under `%LOCALAPPDATA%\com.kabuqina.app\` so the embedded web `/api/status` and **Skills** page can show a **UI-only** placeholder banner without restarting Python. No remote catalog in v1.
 
 **Hidden behind "Power user" toggle (off by default):**
 

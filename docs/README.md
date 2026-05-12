@@ -1,4 +1,4 @@
-# HermesDesk documentation index
+# Kabuqina documentation index
 
 Quick map of **`docs/`** (repo root). Prefer **`architecture.md`** + **`README.md`** for “how it works today”; **`ROADMAP.md`** for intentional next themes.
 
@@ -8,7 +8,7 @@ Quick map of **`docs/`** (repo root). Prefer **`architecture.md`** + **`README.m
 | [ROADMAP.md](ROADMAP.md) | Product-level themes; baseline shipped vs polish |
 | [gateway-desk-weixin-strategy.md](gateway-desk-weixin-strategy.md) | Route A/B/C rationale; four-channel desk implementation index |
 | [gateway-route-c-weixin-validation.md](gateway-route-c-weixin-validation.md) | Weixin iLink field semantics + bundle probe commands |
-| [hermesdesk-capability-matrix.md](hermesdesk-capability-matrix.md) | Toolsets, jail, network allowlist, approval, L1 helpers, **messaging gateway** |
+| [Kabuqina-capability-matrix.md](Kabuqina-capability-matrix.md) | Toolsets, jail, network allowlist, approval, L1 helpers, **messaging gateway** |
 | [safety.md](safety.md) | Layered threat model (align with capability matrix §4 for `NET_OPEN`) |
 | [troubleshooting.md](troubleshooting.md) | Field log — proxies, Tokio I/O, **`build_bundle` vs gateway**, WinError 87, `.env` duplicates |
 | [onboarding.md](onboarding.md) | UX spec for wizard + extended messaging sections |

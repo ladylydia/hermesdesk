@@ -12,14 +12,14 @@
 ## M1: Fresh Migration
 
 **操作：**
-1. 关闭 HermesDesk
-2. 删除 `%LOCALAPPDATA%\HermesDesk\hermes-home\profiles\`（整个目录）
-3. 启动 HermesDesk
+1. 关闭 Kabuqina
+2. 删除 `%LOCALAPPDATA%\com.kabuqina.app\hermes-home\profiles\`（整个目录）
+3. 启动 Kabuqina
 4. 打开 Settings → 看 Status 区域
 
 **验证：**
 - [ ] 启动日志无 migration 相关报错
-- [ ] `%LOCALAPPDATA%\HermesDesk\hermes-home\profiles\` 已创建
+- [ ] `%LOCALAPPDATA%\com.kabuqina.app\hermes-home\profiles\` 已创建
 - [ ] `profiles\.migrated` 文件存在
 - [ ] `hermes-home\shared\USER_PREFS.md` 文件存在且内容为空
 - [ ] 若已配凭据：`profiles\<platform>\` 存在，含 `memories/` + `sessions/` + `.env` + `config.yaml`
@@ -45,7 +45,7 @@
 **操作：**
 1. 配置第二个平台凭据（如 Weixin/Feishu/DingTalk）
 2. 确保两个平台都有完整凭据
-3. 重启 HermesDesk
+3. 重启 Kabuqina
 
 **验证：**
 - [ ] `profiles\<platform1>\` 和 `profiles\<platform2>\` 都存在
@@ -58,7 +58,7 @@
 ## M4: Shared Preferences UI
 
 **操作：**
-1. 启动 HermesDesk
+1. 启动 Kabuqina
 2. 导航到 Settings
 
 **验证：**
@@ -84,7 +84,7 @@
 
 **验证：**
 - [ ] 按钮显示"已保存" / "Saved"（约 2 秒后恢复）
-- [ ] `%LOCALAPPDATA%\HermesDesk\hermes-home\shared\USER_PREFS.md` 内容与输入一致
+- [ ] `%LOCALAPPDATA%\com.kabuqina.app\hermes-home\shared\USER_PREFS.md` 内容与输入一致
 - [ ] `profiles\telegram\_host_prefs.md`（及其他已配平台）内容与 USER_PREFS.md 一致
 - [ ] `profiles\telegram\` 根目录下存在 `_host_prefs.md`
 
@@ -107,7 +107,7 @@
 **操作：**
 1. 在 Shared Preferences 中将 `communication_style: formal` 改为 `communication_style: casual`
 2. 点击保存
-3. 重启 HermesDesk
+3. 重启 Kabuqina
 
 **验证：**
 - [ ] `USER_PREFS.md` 已更新
@@ -185,7 +185,7 @@
 **操作：**
 1. 删除 `profiles\` 目录
 2. 修改 `profiles\.migrated` marker 文件（如修改时间）
-3. 重启 HermesDesk
+3. 重启 Kabuqina
 
 **验证：**
 - [ ] `profiles\` 被重新创建

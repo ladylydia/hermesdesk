@@ -9,13 +9,13 @@ Product behavior is scattered across three mechanisms:
 | Mechanism | Location | Problem |
 |-----------|----------|---------|
 | Dirty submodule | `hermes/` (gateway files + `hermes_cli/` + everything) | "Shipped behavior" is invisible in the owning repo |
-| Patches | `patches/hermesdesk-changes.patch` | Applied *at build time* — not tested until bundle rebuild |
+| Patches | `patches/Kabuqina-changes.patch` | Applied *at build time* — not tested until bundle rebuild |
 | Overlays | `python/overlays/*.py` (9 monkey-patches) | Applied at import time; easy to break with upstream import order changes |
 
 ## Target state
 
 ```
-hermesdesk monorepo/
+Kabuqina monorepo/
 ├── hermes_core/          ← frozen upstream snapshot, owned code
 │   ├── gateway/            ← gateway patches baked in as normal commits
 │   └── hermes_cli/         ← desk-specific web/API changes baked in as normal commits
@@ -48,7 +48,7 @@ hermesdesk monorepo/
 
 ## Phase 0 — Inventory freeze
 
-Completed **2026-05-03**. Canonical inventory of every shipped HermesDesk behavior before the de-patching migration.
+Completed **2026-05-03**. Canonical inventory of every shipped Kabuqina behavior before the de-patching migration.
 
 ### 0.1 Submodule baseline
 
@@ -82,15 +82,15 @@ Completed **2026-05-03**. Canonical inventory of every shipped HermesDesk behavi
 | Inventory | Files | Scope |
 |-----------|-------|-------|
 | Patch file | 9 files (1 now absorbed by upstream — `pty_bridge.py`) | Security hardening |
-| Dirty submodule (gateway + hermes_cli) | 118 → 8 files (after Phase 0.6 reset) | Down from full upstream drift to canonical HermesDesk-only diff |
-| Dirty submodule (total) | 2765 → 8 files (after Phase 0.6 reset) | Only HermesDesk-owned changes remain |
+| Dirty submodule (gateway + hermes_cli) | 118 → 8 files (after Phase 0.6 reset) | Down from full upstream drift to canonical Kabuqina-only diff |
+| Dirty submodule (total) | 2765 → 8 files (after Phase 0.6 reset) | Only Kabuqina-owned changes remain |
 | Runtime bundle vs dirty source | 0 files differ | Both contain the same code |
 
 **Finding after Phase 0.6 cleanup:** The dirty submodule was reset to the pinned commit and the 9 patch files re-applied. `hermes_cli/pty_bridge.py` produced a zero-diff against HEAD (newer upstream already contains the change). The canonical state is **8 files**.
 
 ### 0.3 Patch-file detail
 
-File: `patches/hermesdesk-changes.patch` (3227 lines). 8 of 9 files produce a diff against HEAD.
+File: `patches/Kabuqina-changes.patch` (3227 lines). 8 of 9 files produce a diff against HEAD.
 
 | # | File | Δ (+/-) | Behavior |
 |---|------|---------|----------|
@@ -101,7 +101,7 @@ File: `patches/hermesdesk-changes.patch` (3227 lines). 8 of 9 files produce a di
 | 5 | `gateway/platforms/webhook.py` | +21/-0 | Webhook verification token config |
 | 6 | `gateway/platforms/whatsapp.py` | +1/-1 | `whatsapp_require_mention` config |
 | 7 | `gateway/run.py` | +20/-0 | First-connect survival (retry failed platforms with backoff) |
-| 8 | `hermes_cli/pty_bridge.py` | — | **Absorbed by upstream** — zero diff; HermesDesk PTY needs met by upstream |
+| 8 | `hermes_cli/pty_bridge.py` | — | **Absorbed by upstream** — zero diff; Kabuqina PTY needs met by upstream |
 | 9 | `hermes_cli/web_server.py` | +437/-6 | Desk-specific auth + `/shell-chat` endpoint + session token bridge |
 
 **Total:** 498 insertions, 11 deletions across 8 files.
@@ -114,7 +114,7 @@ The runtime bundle (`python/dist/runtime/`) was built from commit `9a1454060` (`
 
 ### 0.5 Retained-behavior checklist
 
-Every HermesDesk-specific behavior, where it currently lives, and what must happen to it:
+Every Kabuqina-specific behavior, where it currently lives, and what must happen to it:
 
 | Behavior | Current mechanism | Phase 1-3 action |
 |----------|------------------|-------------------|
@@ -147,14 +147,14 @@ Phase 0.6 executed **2026-05-03**:
 
 ```powershell
 git -C hermes checkout HEAD -- .                     # reset to pinned commit
-git -C hermes apply --3way ../patches/hermesdesk-changes.patch  # apply patches
+git -C hermes apply --3way ../patches/Kabuqina-changes.patch  # apply patches
 # 1 conflict in gateway/run.py resolved manually (keep-theirs)
 git -C hermes add gateway/run.py                     # mark resolved
 ```
 
 Final canonical state: **8 files dirty** (498+ / 11-). `pty_bridge.py` absorbed by upstream.
 
-This is the canonical HermesDesk source diff that Phase 1 should import.
+This is the canonical Kabuqina source diff that Phase 1 should import.
 
 ---
 
@@ -163,7 +163,7 @@ This is the canonical HermesDesk source diff that Phase 1 should import.
 | Step | Action | Impact |
 |------|--------|--------|
 | 1.1 | Import the clean upstream base commit as `hermes_core/` | Imports frozen Hermes as owned directory with history |
-| 1.2 | Apply the canonical HermesDesk diff (9 patched files) as normal commits on `hermes_core/` | Gateway security defaults and desk-specific `hermes_cli` changes become permanent owned code |
+| 1.2 | Apply the canonical Kabuqina diff (9 patched files) as normal commits on `hermes_core/` | Gateway security defaults and desk-specific `hermes_cli` changes become permanent owned code |
 | 1.3 | Update `build_bundle.ps1`: source path `hermes/`→`hermes_core/`, remove `git apply` block, update BUNDLE_INFO | Stale bundle trap eliminated — code is what's in the tree |
 | 1.4 | `git rm hermes/`, remove `.gitmodules` | Terminates submodule relationship |
 | 1.5 | Delete `patches/`, `scripts/sync_upstream.ps1`, `SYNC_UPSTREAM.md` | No more patch-based workflow |

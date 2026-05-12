@@ -1,4 +1,4 @@
-# HermesDesk roadmap
+# Kabuqina roadmap
 
 **Last updated:** 2026-04-30
 
@@ -10,7 +10,7 @@ This file tracks **intentional, product-level** work. Bugfix triage lives in iss
 
 **Status:** baseline delivered (ongoing polish)
 
-HermesDesk today includes:
+Kabuqina today includes:
 
 - **Dedicated shell chat** at **`/chat`** (`web/src/chat/*`), backed by Tauri **`invoke`** commands that proxy to the embedded Hermes loopback (`tauri/src/chat.rs`). Sessions list / messages / stop mirror Hermes desk APIs.
 - **Messaging gateway** as a **second supervised Python process** (`python -m gateway.run`, `tauri/src/gateway_supervisor.rs`), auto-start optional on cold launch when `hermes-home/.env` contains messaging credentials, manual controls in Settings.

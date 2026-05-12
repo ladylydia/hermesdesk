@@ -1,6 +1,6 @@
-# HermesDesk capability matrix
+# Kabuqina capability matrix
 
-This document describes **what the Windows HermesDesk shell actually allows** for the embedded Hermes Python runtime: toolsets, workspace jail, network policy, approvals, and quick actions. Use it for PRD and security review.
+This document describes **what the Windows Kabuqina shell actually allows** for the embedded Hermes Python runtime: toolsets, workspace jail, network policy, approvals, and quick actions. Use it for PRD and security review.
 
 **Source of truth:** `tauri/src/python_supervisor.rs`, `python/overlays/*.py`, and `hermes/hermes_cli/web_server.py` (`_desk_chat_build_agent`). If this file disagrees with `docs/safety.md` on a detail, **prefer the code** or update both.
 
@@ -13,7 +13,7 @@ This document describes **what the Windows HermesDesk shell actually allows** fo
 | **Power user** | `settings.json` key `hermesdesk.power_user` (`"1"` / `"true"` = on) → child env **`HERMESDESK_POWER_USER=1` or `0`** | `tauri/src/paths.rs`, `tauri/src/python_supervisor.rs` |
 | **Capability catalog role** | Derived in Python by `CapabilityPolicy`: default when power user off, advanced when recipe market discovery is on, power when `HERMESDESK_POWER_USER=1` | Used by `/api/hermesdesk/capabilities` before the shell renders Skills / tools / plugins |
 | **Workspace folder** | Key `hermesdesk.workspace`; if unset, default **`%USERPROFILE%\Documents\KabuqinaWork`** → **`HERMESDESK_WORKSPACE`** | `paths::ensure_workspace` |
-| **LLM (non-secret)** | `settings.json` → `provider` (e.g. `api_base_url`, `host`, `model`) → **`HERMESDESK_*`** env and overlay sync into `config.yaml` | `tauri/src/secrets.rs`, `python/overlays/desktop_llm_config.py` |
+| **LLM (non-secret)** | `settings.json` → `provider` (e.g. `api_base_url`, `host`, `model`) → **`Kabuqina_*`** env and overlay sync into `config.yaml` | `tauri/src/secrets.rs`, `python/overlays/desktop_llm_config.py` |
 | **API key** | Windows Credential Manager / keyring — **not** in `config.yaml` | `python/overlays/secret_loader.py` (and related) |
 
 ---
@@ -75,7 +75,7 @@ Which tools trigger approval is defined upstream in Hermes (`tools/approval.py` 
 
 ## 6. Builtin “quick actions” (L1 helpers)
 
-**Implementation:** [`python/overlays/builtin_helpers.py`](../python/overlays/builtin_helpers.py), HTTP entry [`POST /api/hermesdesk/builtin-helper`](../hermes/hermes_cli/web_server.py) (when running in HermesDesk runtime).
+**Implementation:** [`python/overlays/builtin_helpers.py`](../python/overlays/builtin_helpers.py), HTTP entry [`POST /api/hermesdesk/builtin-helper`](../hermes/hermes_cli/web_server.py) (when running in Kabuqina runtime).
 
 | Item | Description |
 |------|-------------|

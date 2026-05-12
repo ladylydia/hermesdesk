@@ -1,8 +1,8 @@
-# HermesDesk architecture
+# Kabuqina architecture
 
 ## One-paragraph summary
 
-HermesDesk is a thin Windows-native wrapper around the open-source
+Kabuqina is a thin Windows-native wrapper around the open-source
 [Hermes Agent](https://github.com/NousResearch/hermes-agent). A Tauri 2
 shell (Rust + WebView2) supervises **one long-lived embedded Python 3.11
 process** (`desktop_entrypoint.py`) that runs a stripped, sandboxed Hermes
@@ -13,7 +13,7 @@ the Tauri-hosted shell** (`web/` — Splash, onboarding, `/chat`, Settings); whe
 
 ```mermaid
 flowchart TD
-  User[User] --> Tauri["hermesdesk.exe<br/>(Tauri shell)"]
+  User[User] --> Tauri["Kabuqina.exe<br/>(Tauri shell)"]
   Tauri --> Tray["System tray icon"]
   Tauri --> WebView["Edge WebView2<br/>shell routes first"]
   Tauri --> PySup["python_supervisor"]
@@ -45,7 +45,7 @@ The **Hermes web child** installs `strip_shims` so imports like `gateway.run.mai
 The Python side is split into two architectural layers:
 
 1. **agent_core** — the frozen Hermes Agent subtree (`hermes_core/`). Imported directly by `desktop_entrypoint.py` after overlays are applied. Never modified independently.
-2. **desktop_policy** — HermesDesk-owned policy objects (`python/src/*_policy.py`). Each policy covers one surface (paths, secrets, network, tools, approval, gateway). They are injected at startup via `desktop_config.py` rather than monkey-patched.
+2. **desktop_policy** — Kabuqina-owned policy objects (`python/src/*_policy.py`). Each policy covers one surface (paths, secrets, network, tools, approval, gateway). They are injected at startup via `desktop_config.py` rather than monkey-patched.
 
 The 7 remaining overlays (`python/overlays/`) wire the policies into Hermes' import chain; they will be deleted as their corresponding policies become self-sufficient. See [python/overlays/__init__.py](../python/overlays/__init__.py) for the install order.
 
@@ -87,7 +87,7 @@ Further product notes: [gateway-desk-weixin-strategy.md](gateway-desk-weixin-str
 
 ```
 T+0ms    user double-clicks Start Menu icon
-T+50ms   hermesdesk.exe loads (window shown after bootstrap completes)
+T+50ms   Kabuqina.exe loads (window shown after bootstrap completes)
 T+100ms  Tauri runs setup(): installs tray, spawns bootstrap()
 T+150ms  bootstrap(): ensure_workspace, resolve_runtime_dir, ensure_data_dir
 T+200ms  bridge.spawn() picks a free loopback port, generates tokens

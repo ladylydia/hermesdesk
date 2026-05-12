@@ -1,6 +1,6 @@
 # Windows port audit (Milestone 1)
 
-**Context note (2026-04):** HermesDesk ships **`hermes/gateway/`** in the bundle and runs **`python -m gateway.run`** as a **second** supervised process. The **Hermes web child** (`desktop_entrypoint.py`) still uses **`strip_shims`** so `gateway.run.main` is not executed inside that interpreter; see [`architecture.md`](architecture.md) and [`python/overlays/strip_shims.py`](../python/overlays/strip_shims.py). The tables below describe an **older “gateway fully stripped from bundle”** audit snapshot; posix / import risk for **actual shipping** paths should be re-run against the current `build_bundle.ps1` keep-list.
+**Context note (2026-04):** Kabuqina ships **`hermes/gateway/`** in the bundle and runs **`python -m gateway.run`** as a **second** supervised process. The **Hermes web child** (`desktop_entrypoint.py`) still uses **`strip_shims`** so `gateway.run.main` is not executed inside that interpreter; see [`architecture.md`](architecture.md) and [`python/overlays/strip_shims.py`](../python/overlays/strip_shims.py). The tables below describe an **older “gateway fully stripped from bundle”** audit snapshot; posix / import risk for **actual shipping** paths should be re-run against the current `build_bundle.ps1` keep-list.
 
 ## TL;DR
 
@@ -73,7 +73,7 @@ load cleanly on Windows:
 | File                      | Why it failed audit            | Fix                                                |
 | ------------------------- | ------------------------------ | -------------------------------------------------- |
 | `hermes_cli/curses_ui.py` | `import termios` for tty flush | **Strip** — we have a web UI; no curses needed     |
-| `hermes_cli/uninstall.py` | `os.geteuid()` for sudo check  | **Strip** — HermesDesk has its own MSI uninstaller |
+| `hermes_cli/uninstall.py` | `os.geteuid()` for sudo check  | **Strip** — Kabuqina has its own MSI uninstaller |
 
 
 Both are added to the `$drop` list in `python/build_bundle.ps1`.

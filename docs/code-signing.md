@@ -72,9 +72,9 @@ trusted-signing service for a fully managed path.
 ## Verifying the signature
 
 ```powershell
-Get-AuthenticodeSignature .\HermesDesk_0.1.0_x64_en-US.msi
+Get-AuthenticodeSignature .\Kabuqina_0.1.0_x64_en-US.msi
 # Expect: Status = Valid, SignerCertificate = your CN
-signtool verify /pa /v .\HermesDesk_0.1.0_x64_en-US.msi
+signtool verify /pa /v .\Kabuqina_0.1.0_x64_en-US.msi
 ```
 
 ## Reputation warm-up

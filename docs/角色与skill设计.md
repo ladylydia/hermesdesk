@@ -39,15 +39,15 @@
 
 ## 3) 和 Skill 的具体关联、标签机制
 
-有支持，而且是通过 `SKILL.md` frontmatter 的 `metadata.hermesdesk`：
+有支持，而且是通过 `SKILL.md` frontmatter 的 `metadata.Kabuqina`：
 
 可用字段（当前已接入）：
 
-- `metadata.hermesdesk.visibility.roles`
-- `metadata.hermesdesk.visibility.min_role`
-- `metadata.hermesdesk.source`
-- `metadata.hermesdesk.trust`
-- `metadata.hermesdesk.recommended`
+- `metadata.Kabuqina.visibility.roles`
+- `metadata.Kabuqina.visibility.min_role`
+- `metadata.Kabuqina.source`
+- `metadata.Kabuqina.trust`
+- `metadata.Kabuqina.recommended`
 
 ### fallback 规则（没打标签时）
 

@@ -1,4 +1,4 @@
-# HermesDesk — web
+# Kabuqina — web
 
 Vite + React app embedded in the Tauri shell. Routes (`main.tsx`):
 

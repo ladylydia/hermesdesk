@@ -10,7 +10,7 @@
 | 项 | 要求 |
 |----|------|
 | OS | Windows 10/11 |
-| HermesDesk | 可稳定启动的版本（安装包或 dev 模式） |
+| Kabuqina | 可稳定启动的版本（安装包或 dev 模式） |
 | 监控工具 | 任务管理器（或 `Get-Process python` in PowerShell）可观察进程 |
 | 日志 | `hermesdesk.log` 可读，日志级别建议设为 DEBUG |
 | 前置配置 | Telegram Token 已配置（保证网关在启动条件满足时可自动启动） |
@@ -23,14 +23,14 @@
 
 | 属性 | 内容 |
 |------|------|
-| **Given** | HermesDesk 已启动；网关状态为"运行中"；任务管理器中可见 `python -m gateway.run` 进程 |
+| **Given** | Kabuqina 已启动；网关状态为"运行中"；任务管理器中可见 `python -m gateway.run` 进程 |
 | **When** | 在设置页点击"停止网关"按钮 |
 | **Then** | 网关状态变为"未运行"；任务管理器中 `python -m gateway.run` 进程消失；日志中出现 `[hermes-desklock]` stderr 输出，表明锁文件已被清理 |
 
 **手工执行步骤（步骤级）：**
-1. 启动 HermesDesk，等待网关自动启动（或手动点击"启动网关"）
+1. 启动 Kabuqina，等待网关自动启动（或手动点击"启动网关"）
 2. 打开任务管理器 → Details 标签 → 确认存在 `python.exe` 进程，命令行包含 `gateway.run`
-3. 在 HermesDesk 设置页 → 消息网关区块，点击"停止网关"
+3. 在 Kabuqina 设置页 → 消息网关区块，点击"停止网关"
 4. 观察状态指示器从"运行中"变为"未运行"（应在 3 秒内完成）
 5. 切换回任务管理器 → 确认 `python.exe`（gateway.run）进程已消失
 6. 打开 `hermesdesk.log` → 搜索 `[hermes-desklock]` → 应看到模块级 stderr 输出，确认锁文件已清理
@@ -38,7 +38,7 @@
 
 **预期日志输出（示例）：**
 ```
-[hermes-desklock] Releasing lock file: C:\Users\<user>\AppData\Roaming\hermesdesk\hermes-home\.gateway.lock
+[hermes-desklock] Releasing lock file: C:\Users\<user>\AppData\Roaming\Kabuqina\hermes-home\.gateway.lock
 [hermes-desklock] Lock file removed successfully
 ```
 
@@ -120,7 +120,7 @@ assert log_has_no_errors_containing("lock")
 1. 启动网关，确认 Telegram Bot 正常回复消息
 2. 在任务管理器中找到 `python.exe`（gateway.run）进程 → 右键 → "Go to details" → 右键 → "End process tree"（模拟 crash）
 3. 立即在 Telegram 发送一条测试消息（crash 期间发送）
-4. 开始计时，观察 HermesDesk 设置页状态：
+4. 开始计时，观察 Kabuqina 设置页状态：
    - 预期："运行中" → "未运行"（短暂） → "启动中" → "运行中"
    - 总恢复时间应 < 15 秒
 5. 恢复后检查 Telegram：
@@ -196,7 +196,7 @@ def test_crash_recovery_with_message_queue():
 |------|------|
 | **Given** | 干净环境或 `python/dist/runtime` 已删除；`build_bundle.ps1` 可正常执行 |
 | **When** | 执行 `powershell -ExecutionPolicy Bypass -File .\python\build_bundle.ps1` |
-| **Then** | 脚本执行完成无报错；`python/dist/runtime/` 目录存在且包含完整依赖；首次启动 HermesDesk 无 PyYAML 相关 ImportError |
+| **Then** | 脚本执行完成无报错；`python/dist/runtime/` 目录存在且包含完整依赖；首次启动 Kabuqina 无 PyYAML 相关 ImportError |
 
 **手工执行步骤：**
 1. （可选）删除 `python/dist/runtime/` 模拟干净环境
@@ -206,7 +206,7 @@ def test_crash_recovery_with_message_queue():
    - 应看到 `Applying patch...` 或 `Patch already applied, skipping`
    - 不应有红色 ERROR 输出
    - 最后应看到 `Build complete` 或类似成功提示
-5. 构建完成后，启动 HermesDesk（或 `cargo tauri dev`）
+5. 构建完成后，启动 Kabuqina（或 `cargo tauri dev`）
 6. 检查启动日志 → 搜索 `PyYAML` / `yaml` → 无 ImportError / ModuleNotFoundError
 7. 验证 `/chat` 页面可正常打开并对话
 
@@ -239,8 +239,8 @@ Bundle build complete.
 | 检查项 | 方法 | 预期 |
 |--------|------|------|
 | Gateway 进程数量 | `Get-Process python \| Where-Object {$_.CommandLine -like "*gateway.run*"}` | 0（停止后）或 1（运行中） |
-| Web 子进程数量 | `Get-Process python \| Where-Object {$_.CommandLine -like "*desktop_entrypoint*"}` | 1（HermesDesk 运行期间始终 1 个） |
-| 锁文件残留 | `ls $env:APPDATA\hermesdesk\hermes-home\*.lock` | 无文件 |
+| Web 子进程数量 | `Get-Process python \| Where-Object {$_.CommandLine -like "*desktop_entrypoint*"}` | 1（Kabuqina 运行期间始终 1 个） |
+| 锁文件残留 | `ls $env:APPDATA\Kabuqina\hermes-home\*.lock` | 无文件 |
 | 端口占用 | `netstat -ano \| findstr "127.0.0.1:<gateway_port>"` | 无占用（停止后） |
 
 ---
@@ -313,7 +313,7 @@ class TestGatewayLifecycle:
         assert "error" not in result.stderr.lower()
         
         # 首次启动
-         gateway = start_hermesdesk()
+         gateway = start_Kabuqina()
          assert "PyYAML" not in gateway.logs
          assert gateway.chat_page_is_accessible()
 ```

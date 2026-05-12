@@ -1,6 +1,6 @@
 # Safety model
 
-HermesDesk's "safe by default" promise rests on six concentric layers, each
+Kabuqina's "safe by default" promise rests on six concentric layers, each
 defended in a different language. A bug in any single layer should not be
 sufficient to compromise the user's machine.
 
@@ -17,7 +17,7 @@ sufficient to compromise the user's machine.
 
 ## L1 — OS / Tauri capabilities
 
-- Per-user install under `%LOCALAPPDATA%\HermesDesk`. **No admin elevation
+- Per-user install under `%LOCALAPPDATA%\com.kabuqina.app`. **No admin elevation
   is ever requested.** Anything Hermes can break, the user's normal
   privileges can already break.
 - The Tauri WebView has a tight CSP (`tauri.conf.json#app.security.csp`)
@@ -62,7 +62,7 @@ user at the Settings page where they can add an exception.
 The allowlist stays active in **both** default and **power-user** modes unless
 **`HERMESDESK_NET_OPEN=1`** is set (manual / advanced — **not** flipped
 automatically by the power-user toggle). See
-[`hermesdesk-capability-matrix.md`](hermesdesk-capability-matrix.md) §4.
+[`Kabuqina-capability-matrix.md`](Kabuqina-capability-matrix.md) §4.
 
 ## L4 — Per-tool gates
 
@@ -132,7 +132,7 @@ this document.
 
 ## See also
 
-- [HermesDesk capability matrix](hermesdesk-capability-matrix.md) — toolsets, workspace jail, network allowlist, approval bridge, L1 quick actions, messaging gateway.
+- [Kabuqina capability matrix](Kabuqina-capability-matrix.md) — toolsets, workspace jail, network allowlist, approval bridge, L1 quick actions, messaging gateway.
 - [Messaging gateway troubleshooting](troubleshooting.md) — §§12–16 (startup, PYTHONPATH, WinError 87).
 
 ## Reporting security issues

@@ -1,4 +1,4 @@
-# HermesDesk — Development Guide
+# Kabuqina — Development Guide
 
 > **Windows-only** Tauri 2 desktop app wrapping [Hermes Agent](https://github.com/NousResearch/hermes-agent).
 > The upstream code is frozen in `hermes_core/` — no automatic sync, no submodule, no patches.
@@ -129,8 +129,8 @@ cd tauri; cargo tauri icon ..\web\public\kabuqina_na_blue_256.png
 | Path | Purpose |
 |------|---------|
 | `python/dist/runtime/` | Bundled Python + hermes_core + overlays + site-packages |
-| `%LOCALAPPDATA%\HermesDesk\` | Per-user app data (logs, HERMES_HOME, workspace state) |
-| `%LOCALAPPDATA%\HermesDesk\hermes-home\` | Hermes config root (redirected from `~/.hermes`) |
+| `%LOCALAPPDATA%\com.kabuqina.app\` | Per-user app data (logs, HERMES_HOME, workspace state) |
+| `%LOCALAPPDATA%\com.kabuqina.app\hermes-home\` | Hermes config root (redirected from `~/.hermes`) |
 | `%USERPROFILE%\Documents\KabuqinaWork\` | Default workspace (configurable) |
 | `tauri/target/release/bundle/msi/` | MSI installer output |
 

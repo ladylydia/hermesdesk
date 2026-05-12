@@ -1,7 +1,7 @@
 # Gateway Lock 文件在 Windows 上的已知问题
 
 > 记录日期：2026-05-01  
-> 会话范围：HermesDesk 测试轮 — 网关生命周期 / 消息渠道相关 bug
+> 会话范围：Kabuqina 测试轮 — 网关生命周期 / 消息渠道相关 bug
 
 ---
 

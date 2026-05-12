@@ -135,11 +135,11 @@
 ### 验证步骤
 1. **同步后端代码到 bundle**：
    ```powershell
-   Copy-Item D:\project\hermesdesk\hermes\hermes_cli\web_server.py `
-     D:\project\hermesdesk\python\dist\runtime\hermes\hermes_cli\web_server.py -Force
+   Copy-Item D:\project\Kabuqina\hermes\hermes_cli\web_server.py `
+     D:\project\Kabuqina\python\dist\runtime\hermes\hermes_cli\web_server.py -Force
    ```
    （或运行完整 `\.python\build_bundle.ps1`）
-2. 完全退出并重启 HermesDesk（`Ctrl+C` 停掉 `cargo run`，再重新 `cargo run`）。
+2. 完全退出并重启 Kabuqina（`Ctrl+C` 停掉 `cargo run`，再重新 `cargo run`）。
 3. 发送一条消息，查看日志确认出现 `desk chat model` 行，且助手消息气泡底部显示 `Hermes(...)` 模型标签。
 4. 若日志中 model 仍为空，检查 `~/.hermes/config.yaml`（或 Windows 对应路径 `C:\Users\<用户名>\.hermes\config.yaml`）中 `model.default` 或 `model.model` 是否已配置，配置后重启应用即可显示实际模型名。
 
