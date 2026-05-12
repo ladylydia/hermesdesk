@@ -1407,6 +1407,9 @@ def _apply_env_overrides(config: GatewayConfig) -> None:
         qq_group_allowed = os.getenv("QQ_GROUP_ALLOWED_USERS", "").strip()
         if qq_group_allowed:
             extra["group_allow_from"] = qq_group_allowed
+        qq_group_policy = os.getenv("QQ_GROUP_POLICY", "").strip().lower()
+        if qq_group_policy in ("open", "allowlist", "disabled"):
+            extra["group_policy"] = qq_group_policy
         qq_home = os.getenv("QQBOT_HOME_CHANNEL", "").strip()
         qq_home_name_env = "QQBOT_HOME_CHANNEL_NAME"
         if not qq_home:

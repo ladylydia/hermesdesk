@@ -50,13 +50,13 @@ Run this whole checklist on **both** OS images before tagging a release. Ideally
 
 - [ ] Welcome screen wording reads naturally to a non-tech tester
 - [ ] "Pick a brain" - tap "Free starter" -> "Get your access pass"
-- [ ] "Open OpenRouter in browser" - opens default browser, **not** in-app
+- [ ] Provider signup link opens **DeepSeek** (or chosen provider) in default browser, **not** in-app
 - [ ] Paste a known-good key, hit "Save and continue":
   - [ ] Validation succeeds within a few seconds
   - [ ] No plaintext key in `%LOCALAPPDATA%\HermesDesk\settings.json`
   - [ ] `cmdkey /list:HermesDesk*` lists the credential
 - [ ] Pick a vibe -> **Done** page renders
-- [ ] "Open workspace folder" opens `Documents\HermesWork` in Explorer
+- [ ] "Open workspace folder" opens `Documents\KabuqinaWork` in Explorer
 - [ ] Done primary CTA opens **`/chat`** or **dashboard** per build UX; extended wizard optionally completes **one** messaging channel (Weixin / QQ / Feishu / Telegram)
 
 ## D. Hermes web + shell `/chat` sanity

@@ -644,8 +644,9 @@ DEFAULT_CONFIG = {
     # Format: provider is the provider name, model is the model slug.
     # "auto" for provider = auto-detect best available provider.
     # Empty model = use provider's default auxiliary model.
-    # All tasks fall back to openrouter:google/gemini-3-flash-preview if
-    # the configured provider is unavailable.
+    # When ``provider: auto`` cannot satisfy a task, Hermes tries the auxiliary
+    # client chain (see agent/auxiliary_client.py); document your preferred
+    # fallbacks under auxiliary.* instead of relying on a single hardcoded slug.
     "auxiliary": {
         "vision": {
             "provider": "auto",    # auto | openrouter | nous | codex | custom

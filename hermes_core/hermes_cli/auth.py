@@ -1154,10 +1154,12 @@ def resolve_provider(
 
     Priority (when requested="auto" or None):
     1. active_provider in auth.json with valid credentials
-    2. Explicit CLI api_key/base_url -> "openrouter"
-    3. OPENAI_API_KEY or OPENROUTER_API_KEY env vars -> "openrouter"
-    4. Provider-specific API keys (GLM, Kimi, MiniMax) -> that provider
-    5. Fallback: "openrouter"
+    2. Explicit CLI api_key/base_url -> OpenAI-compatible routing (internal id ``openrouter``)
+    3. OPENAI_API_KEY or OPENROUTER_API_KEY -> same OpenAI-compatible path (covers DeepSeek
+       keys bridged into OPENAI_API_KEY as well as real OpenRouter keys)
+    4. Other provider-specific keys from PROVIDER_REGISTRY (DeepSeek, GLM, Kimi, …)
+    5. AWS Bedrock when the SDK credential chain succeeds
+    6. Otherwise raises AuthError (no provider configured)
     """
     normalized = (requested or "auto").strip().lower()
 

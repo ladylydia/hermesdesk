@@ -259,9 +259,13 @@ Copy-Item -Recurse -Force (Join-Path $PSScriptRoot "helpers") $helpersDest
 Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_entrypoint.py") (Join-Path $Dist "desktop_entrypoint.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_config.py") (Join-Path $Dist "desktop_config.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_contract.py") (Join-Path $Dist "desktop_contract.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\desk_voice_paths.py") (Join-Path $Dist "desk_voice_paths.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\path_policy.py") (Join-Path $Dist "path_policy.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\secret_store.py") (Join-Path $Dist "secret_store.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\approval_backend.py") (Join-Path $Dist "approval_backend.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\messaging_policy.py") (Join-Path $Dist "messaging_policy.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\cron_scheduler_runner.py") (Join-Path $Dist "cron_scheduler_runner.py")
+Copy-Item -Force (Join-Path $PSScriptRoot "src\desktop_delivery.py") (Join-Path $Dist "desktop_delivery.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\network_policy.py") (Join-Path $Dist "network_policy.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\tool_policy.py") (Join-Path $Dist "tool_policy.py")
 Copy-Item -Force (Join-Path $PSScriptRoot "src\capability_policy.py") (Join-Path $Dist "capability_policy.py")
@@ -284,9 +288,9 @@ Set-Content -Path (Join-Path $pyDir "Lib\site-packages\hermesdesk.pth") -Value $
 # Ships the binaries needed for the local-command STT path so HermesDesk can
 # transcribe audio without an API key. The model itself (~57 MB) is NOT
 # bundled — it is lazy-downloaded on first use (see desk_stt_model_*
-# endpoints in hermes_cli/web_server.py). Preferred location is
-# HERMESDESK_DATA_DIR\stt-models\ (HermesDesk path policy); without that env
-# var it falls back to %LOCALAPPDATA%\HermesDesk\stt-models\, surviving upgrades.
+# endpoints in hermes_cli/web_server.py). Default:
+# ``HERMESDESK_WORKSPACE\.hermesdesk\stt-models\``; when workspace is unset,
+# ``HERMESDESK_DATA_DIR\stt-models`` or ``%LOCALAPPDATA%\HermesDesk\stt-models``.
 #
 # Cached in python/_download/ alongside the CPython tarball. SHA-256 verified
 # against pinned constants. Net add to bundle: ~37 MB.

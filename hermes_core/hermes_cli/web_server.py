@@ -1664,11 +1664,18 @@ async def desk_transcribe(request: Request):
                 status_code=400,
             )
 
+        tmp_parent: Optional[str] = None
+        dvp = _desk_voice_paths_mod()
+        if dvp is not None:
+            vtmp = dvp.workspace_voice_tmp_dir()
+            if vtmp is not None:
+                vtmp.mkdir(parents=True, exist_ok=True)
+                tmp_parent = str(vtmp)
         with tempfile.NamedTemporaryFile(
-            suffix=ext, prefix="hermesdesk_stt_", delete=False
-        ) as tmp:
-            tmp.write(audio_bytes)
-            tmp_path = tmp.name
+            suffix=ext, prefix="hermesdesk_stt_", delete=False, dir=tmp_parent
+        ) as tmp_file:
+            tmp_file.write(audio_bytes)
+            tmp_path = tmp_file.name
 
         loop = asyncio.get_running_loop()
         result: dict = await loop.run_in_executor(None, transcribe_audio, tmp_path)
@@ -1876,10 +1883,11 @@ async def desk_tts(request: Request):
 # polls /api/desk/stt-model/status; if the model is missing it shows a "first
 # time setup, download ~60 MB?" prompt and POSTs to /download.
 #
-# The file is stored under HERMESDESK_DATA_DIR\stt-models\ when set (HermesDesk
-# path policy allows writes there); if only LOCALAPPDATA is set it uses
-# %LOCALAPPDATA%\HermesDesk\stt-models\. Survives MSI upgrades (runtime/ is
-# overwritten on each install).
+# Primary store: ``<HERMESDESK_WORKSPACE>/.hermesdesk/stt-models/`` (same tree as
+# the agent default workspace). Legacy: ``HERMESDESK_DATA_DIR`` or
+# ``%LOCALAPPDATA%\\HermesDesk\\stt-models`` — still discovered if the file
+# exists so older installs work until re-download. Survives MSI upgrades
+# (runtime/ is overwritten on each install).
 # ---------------------------------------------------------------------------
 
 # region agent log
@@ -1940,14 +1948,21 @@ _DESK_STT_MODEL_URLS = (
 _DESK_STT_MODEL_SHA256 = ""
 
 
-def _desk_stt_model_path() -> Path:
-    """Resolve where the GGML model lives on disk.
+def _desk_voice_paths_mod():
+    try:
+        import desk_voice_paths  # type: ignore[import-untyped]
+    except ImportError:
+        return None
+    return desk_voice_paths
 
-    Resolver rules aligned with ``python/src/stt_wrapper.py::_model_dir``: prefer
-    ``HERMESDESK_DATA_DIR``, else ``LOCALAPPDATA`` with ``HermesDesk`` inserted
-    when the chosen root is bare Local App Data. If neither is set, use
-    ``HERMES_HOME`` (the wrapper uses the runtime folder as its last resort).
-    """
+
+def _desk_stt_model_path() -> Path:
+    """Canonical GGML path for downloads and API ``path`` when the file is absent."""
+    dvm = _desk_voice_paths_mod()
+    if dvm is not None:
+        return dvm.canonical_stt_model_path(
+            _DESK_STT_MODEL_FILENAME, no_env_fallback_dir=get_hermes_home()
+        )
     data_dir = os.environ.get("HERMESDESK_DATA_DIR") or os.environ.get(
         "LOCALAPPDATA"
     )
@@ -1959,6 +1974,30 @@ def _desk_stt_model_path() -> Path:
     return base / "stt-models" / _DESK_STT_MODEL_FILENAME
 
 
+def _desk_stt_model_resolved() -> tuple[Path, bool]:
+    """Return ``(path, downloaded)`` for status: on-disk file if any, else canonical."""
+    dvm = _desk_voice_paths_mod()
+    if dvm is not None:
+        home = get_hermes_home()
+        found = dvm.resolve_existing_stt_model(
+            _DESK_STT_MODEL_FILENAME, no_env_fallback_dir=home
+        )
+        if found is not None:
+            return found, True
+        return (
+            dvm.canonical_stt_model_path(
+                _DESK_STT_MODEL_FILENAME, no_env_fallback_dir=home
+            ),
+            False,
+        )
+    p = _desk_stt_model_path()
+    try:
+        p.stat()
+        return p, True
+    except OSError:
+        return p, False
+
+
 @app.get("/api/desk/stt-model/status")
 async def desk_stt_model_status():
     """Report whether the local STT model is downloaded.
@@ -1967,18 +2006,18 @@ async def desk_stt_model_status():
     download once. Returns ``downloaded`` and ``size`` so the UI can also
     show a stale/corrupt-file warning if the size is way off.
     """
-    path = _desk_stt_model_path()
+    path, downloaded = _desk_stt_model_resolved()
+    if not downloaded:
+        return JSONResponse({
+            "downloaded": False,
+            "size": 0,
+            "path": str(path),
+        })
     try:
         st = path.stat()
         return JSONResponse({
             "downloaded": True,
             "size": int(st.st_size),
-            "path": str(path),
-        })
-    except FileNotFoundError:
-        return JSONResponse({
-            "downloaded": False,
-            "size": 0,
             "path": str(path),
         })
     except OSError as exc:
@@ -2651,7 +2690,7 @@ def get_auxiliary_models():
           {"task": "vision", "provider": "auto", "model": "", "base_url": ""},
           ...
         ],
-        "main": {"provider": "openrouter", "model": "anthropic/claude-opus-4.7"},
+        "main": {"provider": "deepseek", "model": "deepseek-v4-flash"},
       }
     """
     try:

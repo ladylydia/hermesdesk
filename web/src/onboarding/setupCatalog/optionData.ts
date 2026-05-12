@@ -350,8 +350,8 @@ export const CATALOG_AGENT: SetupCatalogOption[] = [
 export const CATALOG_BRAIN_CARDS: SetupCatalogOption[] = [
   {
     id: "starter",
-    name: L("免费入门（OpenRouter）", "Free starter (OpenRouter)"),
-    defaultHint: L("同 OpenRouter 卡", "OpenRouter path"),
+    name: L("免费入门（DeepSeek 推荐）", "Free starter (DeepSeek—recommended)"),
+    defaultHint: L("与推荐向导一致：DeepSeek 官方 API", "Same as the guided path: DeepSeek official API"),
     isDefault: true,
   },
   {

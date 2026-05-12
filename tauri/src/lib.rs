@@ -13,12 +13,15 @@
 
 mod bridge;
 mod capabilities;
+mod capture;
 mod chat;
+mod cron;
 mod dingtalk_env;
 mod edge_browser;
 mod email_env;
 mod feishu_env;
 mod feishu_qr;
+mod gateway_env_patch;
 mod gateway_supervisor;
 mod pairing;
 mod paths;
@@ -68,6 +71,9 @@ pub struct AppState {
     /// Cached from `bridge::Bridge` for respawning Python without a second `bridge::spawn`.
     pub bridge_secret_url: Arc<Mutex<Option<String>>>,
     pub bridge_approval_url: Arc<Mutex<Option<String>>>,
+    pub bridge_desktop_delivery_url: Arc<Mutex<Option<String>>>,
+    /// Pending desktop delivery messages (Python cron → frontend).
+    pub desktop_messages: Arc<tokio::sync::Mutex<Vec<bridge::DesktopMessage>>>,
     /// Loopback port for Hermes `web_server` (set after Python writes `port.txt`).
     pub hermes_port: Arc<Mutex<Option<u16>>>,
     /// Same value as Python `HERMESDESK_BRIDGE_SECRET` for `X-HermesDesk-Auth`.
@@ -93,6 +99,8 @@ pub fn run() {
         bridge_addr: bridge_addr.clone(),
         bridge_secret_url: Arc::new(Mutex::new(None)),
         bridge_approval_url: Arc::new(Mutex::new(None)),
+        bridge_desktop_delivery_url: Arc::new(Mutex::new(None)),
+        desktop_messages: Arc::new(tokio::sync::Mutex::new(Vec::new())),
         hermes_port: Arc::new(Mutex::new(None)),
         desk_auth_token: Arc::new(Mutex::new(None)),
     };
@@ -110,6 +118,8 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_notification::init())
         .manage(state)
         .invoke_handler(tauri::generate_handler![
             secrets::cmd_save_secret,
@@ -182,10 +192,20 @@ pub fn run() {
             feishu_qr::cmd_feishu_qr_start,
             feishu_qr::cmd_feishu_qr_status,
             feishu_qr::cmd_feishu_qr_cancel,
+            gateway_env_patch::cmd_gateway_host_env_get,
+            gateway_env_patch::cmd_gateway_host_env_patch,
             pairing::cmd_pairing_list,
             pairing::cmd_pairing_approve,
             pairing::cmd_pairing_revoke,
             pairing::cmd_pairing_clear_pending,
+            cmd_desktop_messages,
+            cron::cmd_cron_list,
+            cron::cmd_cron_toggle,
+            cron::cmd_cron_delete,
+            capture::cmd_capture_region,
+            capture::cmd_capture_fullscreen,
+            capture::cmd_show_capture_overlay,
+            capture::cmd_hide_capture_overlay,
         ])
         .setup(|app| {
             tray::install(app)?;
@@ -267,6 +287,12 @@ async fn resolve_spawn_config_for_children(
         .await
         .clone()
         .ok_or_else(|| "bridge not initialised (approval URL)".to_string())?;
+    let desktop_delivery_url = state
+        .bridge_desktop_delivery_url
+        .lock()
+        .await
+        .clone()
+        .ok_or_else(|| "bridge not initialised (desktop delivery URL)".to_string())?;
     let desk_token = state
         .desk_auth_token
         .lock()
@@ -305,6 +331,7 @@ async fn resolve_spawn_config_for_children(
         workspace,
         secret_url,
         approval_url,
+        desktop_delivery_url,
         desk_auth_token: desk_token,
         shell_chat_back_url,
         provider: llm.provider,
@@ -575,14 +602,20 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
         }
     }
 
-    // 2. Stand up the loopback bridge (secret handshake + shell approval).
-    let bridge = bridge::spawn(app.clone()).await?;
+    // 2. Stand up the loopback bridge (secret handshake + shell approval + desktop delivery).
+    let desktop_q = {
+        let state: tauri::State<AppState> = app.state();
+        state.desktop_messages.clone()
+    };
+    let bridge = bridge::spawn(app.clone(), desktop_q).await?;
     {
         let state: tauri::State<AppState> = app.state();
         *state.bridge_addr.lock().await = Some(bridge.addr);
         *state.desk_auth_token.lock().await = Some(bridge.desk_auth_token.clone());
         *state.bridge_secret_url.lock().await = Some(bridge.secret_url.clone());
         *state.bridge_approval_url.lock().await = Some(bridge.approval_url.clone());
+        *state.bridge_desktop_delivery_url.lock().await =
+            Some(bridge.desktop_delivery_url.clone());
     }
 
     // 3. Spawn the Python child (Hermes web_server / desktop_entrypoint).
@@ -619,6 +652,10 @@ async fn bootstrap(app: tauri::AppHandle) -> anyhow::Result<()> {
         let _ = w.show();
         let _ = w.set_focus();
     }
+
+    // 5. Register global screenshot shortcut (Ctrl+Alt+A).
+    capture::register_global_shortcut(&app);
+
     Ok(())
 }
 
@@ -732,4 +769,16 @@ async fn cmd_open_hermes_dashboard(
             "Hermes is not ready yet. Wait a few seconds and try again.".to_string()
         })?;
     open_hermes_dashboard_in_browser(&app, port, shell_locale, path)
+}
+
+/// Return pending desktop delivery messages (from Python cron/send_message)
+/// and clear the buffer.  The frontend polls this periodically.
+#[tauri::command]
+async fn cmd_desktop_messages(
+    app: tauri::AppHandle,
+) -> Result<Vec<bridge::DesktopMessage>, String> {
+    let state: tauri::State<AppState> = app.state();
+    let mut msgs = state.desktop_messages.lock().await;
+    let drained = std::mem::take(&mut *msgs);
+    Ok(drained)
 }

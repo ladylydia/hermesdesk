@@ -528,6 +528,7 @@ from gateway.session import (
     is_shared_multi_user_session,
 )
 from gateway.delivery import DeliveryRouter
+from gateway.home_channel import maybe_auto_set_home_channel
 from gateway.platforms.base import (
     BasePlatformAdapter,
     MessageEvent,
@@ -4969,6 +4970,10 @@ class GatewayRunner:
         # Get or create session
         session_entry = self.session_store.get_or_create_session(source)
         session_key = session_entry.session_key
+        try:
+            maybe_auto_set_home_channel(self.config, source)
+        except Exception as exc:
+            logger.warning("Auto-set home channel failed: %s", exc)
         if getattr(session_entry, "was_auto_reset", False):
             # Treat auto-reset as a full conversation boundary - drop every
             # session-scoped transient state so the fresh session does not

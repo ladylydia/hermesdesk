@@ -131,7 +131,7 @@ cd tauri; cargo tauri icon ..\web\public\kabuqina_na_blue_256.png
 | `python/dist/runtime/` | Bundled Python + hermes_core + overlays + site-packages |
 | `%LOCALAPPDATA%\HermesDesk\` | Per-user app data (logs, HERMES_HOME, workspace state) |
 | `%LOCALAPPDATA%\HermesDesk\hermes-home\` | Hermes config root (redirected from `~/.hermes`) |
-| `%USERPROFILE%\Documents\HermesWork\` | Default workspace (configurable) |
+| `%USERPROFILE%\Documents\KabuqinaWork\` | Default workspace (configurable) |
 | `tauri/target/release/bundle/msi/` | MSI installer output |
 
 ## References

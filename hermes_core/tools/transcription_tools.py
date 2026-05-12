@@ -447,6 +447,22 @@ def _transcribe_local(file_path: str, model_name: str) -> Dict[str, Any]:
         return {"success": False, "transcript": "", "error": f"Local transcription failed: {e}"}
 
 
+def _hermesdesk_voice_work_parent() -> Optional[str]:
+    """HermesDesk: FFmpeg + ``local_command`` outputs under workspace ``.hermesdesk``."""
+    try:
+        import desk_voice_paths as dvp  # type: ignore[import-untyped]
+    except ImportError:
+        return None
+    try:
+        root = dvp.workspace_voice_work_dir()
+        if root is None:
+            return None
+        root.mkdir(parents=True, exist_ok=True)
+        return str(root)
+    except Exception:
+        return None
+
+
 def _prepare_local_audio(file_path: str, work_dir: str) -> tuple[Optional[str], Optional[str]]:
     """Normalize audio for local CLI STT when needed."""
     audio_path = Path(file_path)
@@ -490,7 +506,8 @@ def _transcribe_local_command(file_path: str, model_name: str) -> Dict[str, Any]
     normalized_model = _normalize_local_command_model(model_name)
 
     try:
-        with tempfile.TemporaryDirectory(prefix="hermes-local-stt-") as output_dir:
+        work_parent = _hermesdesk_voice_work_parent()
+        with tempfile.TemporaryDirectory(prefix="hermes-local-stt-", dir=work_parent) as output_dir:
             prepared_input, prep_error = _prepare_local_audio(file_path, output_dir)
             if prep_error:
                 return {"success": False, "transcript": "", "error": prep_error}

@@ -9,7 +9,7 @@ const SETTING_WORKSPACE: &str = "hermesdesk.workspace";
 const SETTING_SHOW_RECIPE_MARKET: &str = "hermesdesk.show_recipe_market";
 const SETTING_AUTO_GATEWAY: &str = "hermesdesk.auto_start_gateway";
 
-/// Resolve `%USERPROFILE%\Documents\HermesWork`, creating it if missing.
+/// Resolve `%USERPROFILE%\Documents\KabuqinaWork`, creating it if missing.
 pub fn ensure_workspace(app: &AppHandle) -> Result<PathBuf> {
     let custom = read_setting(app, SETTING_WORKSPACE);
     let chosen = match custom {
@@ -23,7 +23,7 @@ pub fn ensure_workspace(app: &AppHandle) -> Result<PathBuf> {
 
 fn default_workspace(app: &AppHandle) -> Result<PathBuf> {
     let docs = app.path().document_dir().context("document dir")?;
-    Ok(docs.join("HermesWork"))
+    Ok(docs.join("KabuqinaWork"))
 }
 
 /// Writable per-user app state (resolved by Tauri from the app identifier).

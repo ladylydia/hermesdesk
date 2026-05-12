@@ -142,8 +142,17 @@ export function GetAccessPass() {
       } else {
         const r = await validateKey(provider.id, key);
         if (!r.ok) { setError(r.message ?? t("pass.errGeneric")); return; }
+        const isDeepseek = provider.id === "deepseek";
+        const dsPreset = isDeepseek ? PROVIDER_PRESETS.deepseek : null;
         await invoke("cmd_save_secret", {
-          cfg: { provider: provider.id, host: provider.host, model: null, api_base_url: null },
+          cfg: {
+            provider: provider.id,
+            host: provider.host,
+            model: dsPreset ? dsPreset.model : null,
+            api_base_url: isDeepseek
+              ? normalizeOpenAiBaseUrl(`https://${provider.host}/v1`)
+              : null,
+          },
           secret: key.trim(),
         });
         updateDraft({ apiKey: "" });

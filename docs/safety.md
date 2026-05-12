@@ -36,7 +36,7 @@ Wraps `builtins.open`, `os.{remove,rename,replace,mkdir,...}`, and
 canonicalises under one of:
 
 - `HERMESDESK_WORKSPACE` — the user's workspace folder (default
-  `Documents/HermesWork`)
+  `Documents/KabuqinaWork`)
 - `HERMESDESK_DATA_DIR` (writable; logs, sqlite caches)
 - `%TEMP%` (writable; httpx caches, fal-client uploads)
 - The bundle dir (read-only; bundled Python stdlib + site-packages)

@@ -1,4 +1,4 @@
-﻿import { Download, Plus } from "lucide-react";
+﻿import { AlarmClock, Download, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useI18n } from "../lib/i18n";
 import type { SessionRow } from "./chat-api";
@@ -111,7 +111,29 @@ export function ChatSidebar({
           />
           <span className="block leading-snug">{t("chat.exportButton")}</span>
         </button>
-
+        <button
+          type="button"
+          onClick={() => nav("/settings/cron", { state: { cronBackTo: "/chat" } })}
+          className={cn(
+            "group inline-flex w-full items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-left text-sm font-semibold tracking-tight",
+            "border-zinc-200/90 bg-white/95 text-zinc-800 shadow-[0_1px_2px_rgba(0,0,0,0.05)]",
+            "transition-[border-color,background-color,color,box-shadow,transform] duration-150 ease-out",
+            "hover:border-sky-300 hover:bg-sky-50 hover:text-sky-950 hover:shadow-[0_4px_14px_-4px_rgba(14,165,233,0.35)]",
+            "active:scale-[0.99]",
+            "dark:border-zinc-600 dark:bg-zinc-800/85 dark:text-zinc-100",
+            "dark:hover:border-sky-500/60 dark:hover:bg-sky-950/45 dark:hover:text-sky-50 dark:hover:shadow-[0_4px_18px_-6px_rgba(56,189,248,0.22)]"
+          )}
+        >
+          <AlarmClock
+            className={cn(
+              "h-[1.05rem] w-[1.05rem] shrink-0 text-zinc-500 transition-colors duration-150 ease-out",
+              "group-hover:text-sky-600 dark:text-zinc-400 dark:group-hover:text-sky-400"
+            )}
+            strokeWidth={2.25}
+            aria-hidden
+          />
+          <span className="block leading-snug">{t("cron.title")}</span>
+        </button>
       </div>
     </aside>
   );

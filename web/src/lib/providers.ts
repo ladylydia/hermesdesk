@@ -39,7 +39,7 @@ export const PROVIDERS: Provider[] = [
     validateUrl: "https://openrouter.ai/api/v1/auth/key",
     validateAuth: (k) => `Bearer ${k}`,
     keyPrefixHint: "sk-or-",
-    blurb: "200+ models from one key. Has a free tier.",
+    blurb: "Optional: many models behind one key. Free tier—pick if you need multi-vendor routing.",
     freeTier: true,
   },
   {

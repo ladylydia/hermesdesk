@@ -3,6 +3,7 @@ import { PlatformPage } from "./PlatformPage";
 import { Section } from "../../components/ui/Section";
 import { DingTalkSettingsBlock } from "../../components/DingTalkSettingsBlock";
 import { useI18n } from "../../lib/i18n";
+import { GatewayChannelSettingsPanel } from "../GatewayChannelSettingsPanel";
 
 export function DingTalkPage() {
   const { t } = useI18n();
@@ -11,6 +12,7 @@ export function DingTalkPage() {
       <Section icon={Store} title={t("settings.dingtalkTitle")}>
         <DingTalkSettingsBlock />
       </Section>
+      <GatewayChannelSettingsPanel platform="dingtalk" />
     </PlatformPage>
   );
 }

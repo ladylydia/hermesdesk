@@ -3,6 +3,7 @@ import { PlatformPage } from "./PlatformPage";
 import { Section } from "../../components/ui/Section";
 import { QqbotQrRouteBlock } from "../../components/QqbotQrRouteBlock";
 import { useI18n } from "../../lib/i18n";
+import { GatewayChannelSettingsPanel } from "../GatewayChannelSettingsPanel";
 
 export function QqPage() {
   const { t } = useI18n();
@@ -11,6 +12,7 @@ export function QqPage() {
       <Section icon={Bot} title={t("settings.qqTitle")}>
         <QqbotQrRouteBlock />
       </Section>
+      <GatewayChannelSettingsPanel platform="qqbot" />
     </PlatformPage>
   );
 }

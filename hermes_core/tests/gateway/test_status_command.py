@@ -225,7 +225,7 @@ async def test_handle_message_persists_agent_token_counts(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_first_run_slack_home_channel_onboarding_uses_parent_command(monkeypatch):
+async def test_first_run_slack_dm_auto_sets_home_without_onboarding_prompt(monkeypatch):
     import gateway.run as gateway_run
 
     session_entry = SessionEntry(
@@ -253,6 +253,11 @@ async def test_first_run_slack_home_channel_onboarding_uses_parent_command(monke
     )
 
     monkeypatch.delenv("SLACK_HOME_CHANNEL", raising=False)
+    saved: dict[str, str] = {}
+    monkeypatch.setattr(
+        "hermes_cli.config.save_env_value",
+        lambda key, value: saved.__setitem__(key, value),
+    )
     monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
     monkeypatch.setattr(
         "agent.model_metadata.get_model_context_length",
@@ -262,14 +267,13 @@ async def test_first_run_slack_home_channel_onboarding_uses_parent_command(monke
     result = await runner._handle_message(_make_event("hello", platform=Platform.SLACK))
 
     assert result == "ok"
-    runner.adapters[Platform.SLACK].send.assert_awaited_once()
-    onboarding = runner.adapters[Platform.SLACK].send.await_args.args[1]
-    assert "/hermes sethome" in onboarding
-    assert "Type /sethome" not in onboarding
+    runner.adapters[Platform.SLACK].send.assert_not_awaited()
+    assert saved == {"SLACK_HOME_CHANNEL": "c1"}
+    assert runner.config.platforms[Platform.SLACK].home_channel.chat_id == "c1"
 
 
 @pytest.mark.asyncio
-async def test_first_run_non_slack_home_channel_onboarding_keeps_direct_command(monkeypatch):
+async def test_first_run_non_slack_dm_auto_sets_home_without_onboarding_prompt(monkeypatch):
     import gateway.run as gateway_run
 
     session_entry = SessionEntry(
@@ -297,6 +301,11 @@ async def test_first_run_non_slack_home_channel_onboarding_keeps_direct_command(
     )
 
     monkeypatch.delenv("TELEGRAM_HOME_CHANNEL", raising=False)
+    saved: dict[str, str] = {}
+    monkeypatch.setattr(
+        "hermes_cli.config.save_env_value",
+        lambda key, value: saved.__setitem__(key, value),
+    )
     monkeypatch.setattr(gateway_run, "_resolve_runtime_agent_kwargs", lambda: {"api_key": "***"})
     monkeypatch.setattr(
         "agent.model_metadata.get_model_context_length",
@@ -306,9 +315,9 @@ async def test_first_run_non_slack_home_channel_onboarding_keeps_direct_command(
     result = await runner._handle_message(_make_event("hello", platform=Platform.TELEGRAM))
 
     assert result == "ok"
-    runner.adapters[Platform.TELEGRAM].send.assert_awaited_once()
-    onboarding = runner.adapters[Platform.TELEGRAM].send.await_args.args[1]
-    assert "Type /sethome" in onboarding
+    runner.adapters[Platform.TELEGRAM].send.assert_not_awaited()
+    assert saved == {"TELEGRAM_HOME_CHANNEL": "c1"}
+    assert runner.config.platforms[Platform.TELEGRAM].home_channel.chat_id == "c1"
 
 
 @pytest.mark.asyncio

@@ -11,9 +11,9 @@ returns its contents as the transcript (see
 
 This script is what we plug in. It:
   1. Validates the bundled ``whisper-cli.exe`` + ``ffmpeg.exe`` exist.
-  2. Verifies the lazy-downloaded GGML model is present under
-     ``HERMESDESK_DATA_DIR\\stt-models\\`` (or ``%LOCALAPPDATA%\\HermesDesk\\stt-models\\``)
-     (else exits 2 with sentinel ``STT_MODEL_MISSING`` for the desk UI).
+  2. Verifies the GGML model exists at the desk canonical path (preferred:
+     ``<HERMESDESK_WORKSPACE>/.hermesdesk/stt-models/``, with legacy locations
+     still accepted) or exits 2 with ``STT_MODEL_MISSING``.
   3. Resamples the input to 16 kHz mono PCM WAV via ffmpeg (whisper.cpp does
      not decode webm and is picky about sample rate).
   4. Runs whisper.cpp with ``-otxt -of <prefix>`` so it writes
@@ -37,6 +37,11 @@ import sys
 from pathlib import Path
 
 MODEL_FILENAME = "ggml-base-q5_1.bin"
+
+try:
+    import desk_voice_paths as _dvp  # type: ignore[import-untyped]
+except ImportError:
+    _dvp = None
 
 # ---- Bootstrap site-packages so zhconv is importable ----
 # When stt_wrapper.py runs as a Hermes-local_command subprocess the bundled
@@ -66,17 +71,28 @@ def _runtime_dir() -> Path:
     return Path(__file__).resolve().parent
 
 
-def _model_dir() -> Path:
-    """Where the lazy-downloaded model lives.
+def _resolve_stt_model_file() -> tuple[Path | None, Path]:
+    """Return ``(existing_or_none, canonical_for_error)``."""
 
-    Prefers ``HERMESDESK_DATA_DIR`` (matches desk download / path policy); if
-    unset, uses ``LOCALAPPDATA\\HermesDesk\\stt-models\\``. Last resort: next to
-    this script (runtime may be overwritten on MSI upgrade).
-    """
+    rt = _runtime_dir()
+    if _dvp is not None:
+        found = _dvp.resolve_existing_stt_model(
+            MODEL_FILENAME, no_env_fallback_dir=rt
+        )
+        canon = _dvp.canonical_stt_model_path(
+            MODEL_FILENAME, no_env_fallback_dir=rt
+        )
+        return found, canon
+
+    leg = _model_dir() / MODEL_FILENAME
+    return (leg if leg.is_file() else None), leg
+
+
+def _model_dir() -> Path:
+    """Legacy resolver when ``desk_voice_paths`` is unavailable (dev smoke)."""
+
     data_dir = os.environ.get("HERMESDESK_DATA_DIR") or os.environ.get("LOCALAPPDATA")
     if not data_dir:
-        # Last resort: alongside the runtime. Not preferred (gets wiped on
-        # upgrade) but better than crashing.
         return _runtime_dir() / "stt-models"
     base = Path(data_dir)
     if "LOCALAPPDATA" in os.environ and base == Path(os.environ["LOCALAPPDATA"]):
@@ -146,11 +162,9 @@ def main() -> int:
         )
         return 3
 
-    model_path = _model_dir() / MODEL_FILENAME
-    if not model_path.exists():
-        # Sentinel string the desk endpoint scrapes from stderr to surface a
-        # "please download model" UI prompt rather than a generic 500.
-        print(f"STT_MODEL_MISSING: {model_path}", file=sys.stderr)
+    model_path, canon = _resolve_stt_model_file()
+    if model_path is None:
+        print(f"STT_MODEL_MISSING: {canon}", file=sys.stderr)
         return 2
 
     out_dir = Path(output_dir)

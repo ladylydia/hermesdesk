@@ -290,6 +290,8 @@ function AssistantMessageFooter({
   model?: string;
   timeStr: string | null;
 }) {
+  const { t } = useI18n();
+  const name = t("brand");
   return (
     <div
       className={cn(
@@ -304,7 +306,7 @@ function AssistantMessageFooter({
       ) : null}
       <div className="flex min-w-0 max-w-full flex-wrap items-center justify-end gap-x-1 gap-y-1 font-mono text-zinc-500 sm:gap-x-1.5 dark:text-zinc-400">
         <span className="shrink-0 min-w-0 break-all sm:break-normal">
-          {model?.trim() ? `Kabuqina(${model.trim()})` : "Kabuqina"}
+          {model?.trim() ? `${name}(${model.trim()})` : name}
         </span>
         <span className="text-zinc-300 dark:text-zinc-600" aria-hidden>
           ·

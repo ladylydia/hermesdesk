@@ -25,7 +25,8 @@ Total clicks for the happy path: **5 clicks + 1 paste**.
 - Never show a settings dump. If a value has a sensible default,
 hide it; expose under Settings only.
 - Never make the user choose between technical providers up front.
-Default to OpenRouter (one key, many models, free tier exists).
+  **DeepSeek** is the default happy path (official API, OpenAI-compatible `/v1`).
+  OpenRouter and others remain available under “more providers”.
 
 ## Visual rules
 

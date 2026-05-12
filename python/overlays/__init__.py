@@ -67,6 +67,12 @@ def apply_all() -> None:
     _run("default_toolset",     lambda: __import__(__name__ + ".default_toolset",   fromlist=["install"]).install())
     _run("builtin_helpers",     lambda: __import__(__name__ + ".builtin_helpers",   fromlist=["install"]).install())
     _run("approval_bridge",     lambda: __import__(__name__ + ".approval_bridge",   fromlist=["install"]).install())
+    # cron.scheduler is part of the bundled hermes tree and only becomes
+    # importable after _wire_sys_path() in desktop_entrypoint. The first
+    # call here is best-effort (likely no-op); desktop_entrypoint runs
+    # install() a second time after sys.path is wired.
+    _run("cron_desktop_delivery", lambda: __import__(__name__ + ".cron_desktop_delivery", fromlist=["install"]).install())
+    _run("cron_retain_completed", lambda: __import__(__name__ + ".cron_retain_completed", fromlist=["install"]).install())
 
     _APPLIED = True
     log.info("HermesDesk overlays applied")

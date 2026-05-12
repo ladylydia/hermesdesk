@@ -4,7 +4,7 @@
 # Target replacement: ``python/src/policies/path_policy.py``
 
 All file operations Hermes performs must stay inside a single workspace
-folder, by default %USERPROFILE%\\Documents\\HermesWork. We enforce
+folder, by default %USERPROFILE%\\Documents\\KabuqinaWork. We enforce
 this by wrapping the small set of "open file" entry points that every
 Hermes file tool funnels through:
 

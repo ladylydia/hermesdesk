@@ -176,10 +176,10 @@ pub fn resolve_llm_spawn_params(app: &AppHandle) -> LlmSpawnParams {
     }
 
     LlmSpawnParams {
-        provider: "openrouter".into(),
-        llm_host: "openrouter.ai".into(),
-        api_base_url: None,
-        hermes_model: None,
+        provider: "deepseek".into(),
+        llm_host: "api.deepseek.com".into(),
+        api_base_url: Some("https://api.deepseek.com/v1".into()),
+        hermes_model: Some("deepseek-v4-flash".into()),
         inference_provider: None,
     }
 }

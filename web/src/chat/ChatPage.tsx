@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { usePowerUser, setPowerUser } from "../lib/powerUser";
 import { useLocation, useNavigate } from "react-router-dom";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { AppScaffold } from "../components/AppScaffold";
 import { useI18n } from "../lib/i18n";
@@ -21,6 +22,7 @@ import { useHermesReadiness } from "./hooks/useHermesReadiness";
 import { useSessions } from "./hooks/useSessions";
 import { useChatState } from "./hooks/useChatState";
 import { useSendMessage } from "./hooks/useSendMessage";
+import { type CaptureDonePayload } from "../capture/capture-api";
 
 export function ChatPage() {
   const { t } = useI18n();
@@ -52,6 +54,7 @@ export function ChatPage() {
     progress,
     pendingAttachments,
     onAddFiles,
+    onAddCaptureAttachment,
     onRemoveAttachment,
     onSend,
     onStopAgent,
@@ -106,6 +109,55 @@ export function ChatPage() {
     setInput(draft);
     nav("/chat", { replace: true, state: {} });
   }, [location.state, nav, setInput]);
+
+  // Listen for screenshot capture events from the overlay window.
+  useEffect(() => {
+    const unlisten = listen<CaptureDonePayload>("capture-done", (event) => {
+      const { name, mime, data } = event.payload;
+      onAddCaptureAttachment({ name, mime, data });
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [onAddCaptureAttachment]);
+
+  // Poll for desktop deliveries (cron job output, send_message to "desktop")
+  // and inject them into the chat stream as system-style assistant messages.
+  // Toast notifications fire from the Rust side (bridge.rs); this effect is
+  // the in-app counterpart so the user sees the full content even if they
+  // missed the toast.
+  useEffect(() => {
+    let cancelled = false;
+    const streamHeader = t("cron.streamTitle");
+    const tick = async () => {
+      try {
+        const msgs = await invoke<Array<{ title: string; message: string }>>(
+          "cmd_desktop_messages",
+        );
+        if (cancelled || !msgs || msgs.length === 0) return;
+        const now = Date.now();
+        setMessages((prev) => [
+          ...prev,
+          ...msgs.map((m, idx) => ({
+            id: `cron-${now}-${idx}`,
+            role: "assistant" as const,
+            text: `**${streamHeader}: ${m.title || ""}**\n\n${m.message || ""}`,
+            timestamp: now / 1000,
+          })),
+        ]);
+      } catch (e) {
+        console.debug("cmd_desktop_messages poll skipped:", e);
+      }
+    };
+    void tick();
+    const handle = window.setInterval(() => {
+      void tick();
+    }, 5000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(handle);
+    };
+  }, [setMessages, t]);
 
   const togglePowerUser = useCallback(async (next: boolean) => {
     if (next) {
@@ -209,7 +261,6 @@ export function ChatPage() {
             sending={sending}
             sendErr={sendErr}
             progress={progress}
-            onPromptClick={(text) => setInput(text)}
           />
           <ChatInput
             value={input}

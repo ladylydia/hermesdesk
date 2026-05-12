@@ -287,18 +287,48 @@ class ApprovalBackend:
             log.info("auto-approved workspace read command: %s", command[:200])
             return "once"
 
-        url = os.environ.get("HERMESDESK_APPROVAL_URL")
-        if not url:
-            log.warning("no HERMESDESK_APPROVAL_URL; denying command %r", command)
-            return "deny"
-
-        payload = json.dumps({
+        return self._post({
+            "type": "shell",
             "command": command,
             "description": description,
-        }).encode("utf-8")
+        })
 
+    def ask_messaging(self, target: str, content_preview: str = "",
+                      attachments: list[str] | None = None) -> str:
+        """Ask approval for a send_message to a remote target.
+
+        Returns 'once' if allowed, 'deny' otherwise.
+        """
+        return self._post({
+            "type": "messaging",
+            "target": target,
+            "content_preview": content_preview[:500],
+            "attachments": attachments or [],
+        })
+
+    def ask_cron(self, action: str, schedule: str = "",
+                 description: str = "", delivery_target: str = "") -> str:
+        """Ask approval for a cronjob create/update.
+
+        Returns 'once' if allowed, 'deny' otherwise.
+        """
+        return self._post({
+            "type": "cron",
+            "action": action,
+            "schedule": schedule,
+            "description": description[:500],
+            "delivery_target": delivery_target,
+        })
+
+    def _post(self, payload: dict) -> str:
+        url = os.environ.get("HERMESDESK_APPROVAL_URL")
+        if not url:
+            log.warning("no HERMESDESK_APPROVAL_URL; denying request")
+            return "deny"
+
+        data = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
-            url, data=payload,
+            url, data=data,
             headers={"Content-Type": "application/json"},
             method="POST",
         )

@@ -1561,26 +1561,20 @@ class AccessGuardMiddleware(InboundMiddleware):
 
 
 class AutoSetHomeMiddleware(InboundMiddleware):
-    """Auto-designate the first inbound conversation as Yuanbao home channel.
+    """Auto-designate the first inbound DM as Yuanbao home channel.
 
-    Triggers when no home channel is configured, or when an existing group-chat
-    home is superseded by the first DM (direct > group upgrade).
-    Silent: writes config.yaml and env, no user-facing message.
+    Group chats are intentionally never auto-selected. Explicit ``/sethome`` is
+    required for a group to become home, and any existing home is preserved.
     """
 
     name = "auto-sethome"
 
     async def handle(self, ctx: InboundContext, next_fn) -> None:
         adapter = ctx.adapter
-        if not adapter._auto_sethome_done:
+        if not adapter._auto_sethome_done and ctx.chat_type == "dm":
             _cur_home = os.getenv("YUANBAO_HOME_CHANNEL", "")
-            _should_set = (
-                not _cur_home
-                or (_cur_home.startswith("group:") and ctx.chat_type == "dm")
-            )
-            if ctx.chat_type == "dm":
-                adapter._auto_sethome_done = True  # DM seen — no further upgrades needed
-            if _should_set:
+            adapter._auto_sethome_done = True  # DM seen -- no future auto changes.
+            if not _cur_home:
                 try:
                     from hermes_constants import get_hermes_home
                     from utils import atomic_yaml_write

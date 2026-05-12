@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isTauri } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ArrowUp, FolderOpen, Paperclip, Square, Zap } from "lucide-react";
+import { ArrowUp, Crop, FolderOpen, Paperclip, Square, Zap } from "lucide-react";
 import { useI18n } from "../lib/i18n";
 import { Toggle } from "../components/ui/Toggle";
 import { cn } from "../lib/cn";
+import { captureFullscreen, showCaptureOverlay } from "../capture/capture-api";
 import { VoiceButton } from "./VoiceButton";
 import { useVoiceRecorder } from "./hooks/useVoiceRecorder";
 
@@ -42,10 +43,13 @@ export function ChatInput({
 
   const [voiceErr, setVoiceErr] = useState<string | null>(null);
   const [pathPickerErr, setPathPickerErr] = useState<string | null>(null);
+  const [screenshotErr, setScreenshotErr] = useState<string | null>(null);
   const [pathMenuOpen, setPathMenuOpen] = useState(false);
+  const [screenshotMenuOpen, setScreenshotMenuOpen] = useState(false);
   const [needsModelDownload, setNeedsModelDownload] = useState(false);
   const errTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pathErrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const screenshotErrTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleVoiceErr = useCallback(
     (err: string) => {
@@ -119,22 +123,32 @@ export function ChatInput({
     return () => {
       if (errTimerRef.current) clearTimeout(errTimerRef.current);
       if (pathErrTimerRef.current) clearTimeout(pathErrTimerRef.current);
+      if (screenshotErrTimerRef.current) clearTimeout(screenshotErrTimerRef.current);
     };
   }, []);
 
   useEffect(() => {
-    if (!pathMenuOpen) return;
+    if (!pathMenuOpen && !screenshotMenuOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPathMenuOpen(false);
+      if (e.key === "Escape") {
+        setPathMenuOpen(false);
+        setScreenshotMenuOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [pathMenuOpen]);
+  }, [pathMenuOpen, screenshotMenuOpen]);
 
   const flashPathPickerErr = useCallback((msg: string) => {
     setPathPickerErr(msg);
     if (pathErrTimerRef.current) clearTimeout(pathErrTimerRef.current);
     pathErrTimerRef.current = setTimeout(() => setPathPickerErr(null), 4000);
+  }, []);
+
+  const flashScreenshotErr = useCallback((msg: string) => {
+    setScreenshotErr(msg);
+    if (screenshotErrTimerRef.current) clearTimeout(screenshotErrTimerRef.current);
+    screenshotErrTimerRef.current = setTimeout(() => setScreenshotErr(null), 4000);
   }, []);
 
   const insertPathIntoPrompt = useCallback(
@@ -182,6 +196,26 @@ export function ChatInput({
       }
     },
     [flashPathPickerErr, insertPathIntoPrompt, t]
+  );
+
+  const handleScreenshotAction = useCallback(
+    async (mode: "region" | "fullscreen") => {
+      setScreenshotMenuOpen(false);
+      if (!isTauri()) {
+        flashScreenshotErr(t("chat.insertPathNeedsApp"));
+        return;
+      }
+      try {
+        if (mode === "region") {
+          await showCaptureOverlay();
+        } else {
+          await captureFullscreen();
+        }
+      } catch {
+        flashScreenshotErr(t("chat.screenshotFailed"));
+      }
+    },
+    [flashScreenshotErr, t]
   );
 
   const handleKeyDown = useCallback(
@@ -251,7 +285,11 @@ export function ChatInput({
               <button
                 type="button"
                 disabled={sending}
-                onClick={() => !sending && setPathMenuOpen((o) => !o)}
+                onClick={() => {
+                  if (sending) return;
+                  setScreenshotMenuOpen(false);
+                  setPathMenuOpen((o) => !o);
+                }}
                 className="group relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-700/80 disabled:cursor-not-allowed disabled:opacity-40"
                 aria-label={t("chat.insertPath")}
                 aria-expanded={pathMenuOpen}
@@ -317,6 +355,56 @@ export function ChatInput({
                 {t("chat.attachHint")}
               </span>
             </button>
+            <div className="relative">
+              <button
+                type="button"
+                disabled={sending}
+                onClick={() => {
+                  if (sending) return;
+                  setPathMenuOpen(false);
+                  setScreenshotMenuOpen((o) => !o);
+                }}
+                className="group relative flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 active:scale-[0.98] dark:text-zinc-400 dark:hover:bg-zinc-700/80 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={t("chat.screenshot")}
+                aria-expanded={screenshotMenuOpen}
+                aria-haspopup="menu"
+              >
+                <Crop className="h-5 w-5" strokeWidth={2} />
+                <span className="pointer-events-none absolute -bottom-9 left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-lg bg-white/80 px-3 py-1.5 text-xs font-medium text-zinc-600 opacity-0 shadow-md ring-1 ring-zinc-200/60 backdrop-blur-sm transition-opacity group-hover:opacity-100 dark:bg-zinc-900/70 dark:text-zinc-300 dark:ring-zinc-700/60">
+                  {t("chat.screenshotHint")}
+                </span>
+              </button>
+              {screenshotMenuOpen && (
+                <>
+                  <div
+                    role="presentation"
+                    className="fixed inset-0 z-[15]"
+                    onClick={() => setScreenshotMenuOpen(false)}
+                  />
+                  <div
+                    role="menu"
+                    className="absolute bottom-full left-0 z-[25] mb-1 min-w-[10.5rem] overflow-hidden rounded-lg border border-zinc-200/95 bg-white py-1 shadow-lg dark:border-zinc-600 dark:bg-zinc-900"
+                  >
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="block w-full px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                      onClick={() => void handleScreenshotAction("region")}
+                    >
+                      {t("chat.screenshotRegion")}
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="block w-full px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                      onClick={() => void handleScreenshotAction("fullscreen")}
+                    >
+                      {t("chat.screenshotFullscreen")}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
             {mimeTypeSupported && (
               <VoiceButton
                 state={recorderState}
@@ -387,6 +475,11 @@ export function ChatInput({
       {pathPickerErr && (
         <p className="mx-auto mt-1.5 max-w-3xl text-xs text-amber-700 dark:text-amber-400">
           {pathPickerErr}
+        </p>
+      )}
+      {screenshotErr && (
+        <p className="mx-auto mt-1.5 max-w-3xl text-xs text-amber-700 dark:text-amber-400">
+          {screenshotErr}
         </p>
       )}
       <div className="mx-auto mt-2.5 flex max-w-3xl items-center justify-between gap-3">

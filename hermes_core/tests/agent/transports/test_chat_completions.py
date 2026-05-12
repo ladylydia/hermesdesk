@@ -94,6 +94,39 @@ class TestChatCompletionsBuildKwargs:
         )
         assert kw["extra_body"]["reasoning"] == {"enabled": True, "effort": "medium"}
 
+    def test_deepseek_reasoning_effort_defaults_high(self, transport):
+        msgs = [{"role": "user", "content": "Hi"}]
+        kw = transport.build_kwargs(
+            model="deepseek-v4-flash",
+            messages=msgs,
+            provider_name="deepseek",
+            base_url="https://api.deepseek.com/v1",
+        )
+        assert kw["reasoning_effort"] == "high"
+        assert "extra_body" not in kw or "reasoning" not in kw.get("extra_body", {})
+
+    def test_deepseek_reasoning_effort_from_config(self, transport):
+        msgs = [{"role": "user", "content": "Hi"}]
+        kw = transport.build_kwargs(
+            model="deepseek-v4-flash",
+            messages=msgs,
+            provider_name="deepseek",
+            base_url="https://api.deepseek.com/v1",
+            reasoning_config={"enabled": True, "effort": "low"},
+        )
+        assert kw["reasoning_effort"] == "low"
+
+    def test_deepseek_reasoning_disabled(self, transport):
+        msgs = [{"role": "user", "content": "Hi"}]
+        kw = transport.build_kwargs(
+            model="deepseek-v4-flash",
+            messages=msgs,
+            provider_name="deepseek",
+            base_url="https://api.deepseek.com/v1",
+            reasoning_config={"enabled": False},
+        )
+        assert "reasoning_effort" not in kw
+
     def test_nous_omits_disabled_reasoning(self, transport):
         msgs = [{"role": "user", "content": "Hi"}]
         kw = transport.build_kwargs(

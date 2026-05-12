@@ -4,13 +4,15 @@ type Props = {
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
+  "aria-label"?: string;
 };
 
-export function Toggle({ value, onChange, disabled }: Props) {
+export function Toggle({ value, onChange, disabled, "aria-label": ariaLabel }: Props) {
   return (
     <button
       type="button"
       role="switch"
+      aria-label={ariaLabel}
       aria-checked={value}
       disabled={disabled}
       onClick={() => onChange(!value)}

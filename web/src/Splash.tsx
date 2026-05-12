@@ -57,9 +57,6 @@ export function Splash() {
           decoding="async"
         />
         <div className="text-2xl font-semibold tracking-tight sm:text-3xl">{t("brand")}</div>
-        <div className="mt-1 font-mono text-xs uppercase tracking-[0.24em] text-zinc-400 dark:text-zinc-500">
-          Kabuqina
-        </div>
         <p className="hd-hint mt-3 justify-center">
           <span aria-hidden>✨</span>
           {t("splash.waking")}

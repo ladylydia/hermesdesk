@@ -13,7 +13,7 @@
 |----|------|
 | HermesDesk | 可启动版本（dev 或安装包） |
 | API Keys | `[待填写: DeepSeek API Key]`（有效）、`[待填写: 过期 DeepSeek API Key]`（用于异常测试） |
-| 网络 | 可访问 `api.deepseek.com` 和 `openrouter.ai` |
+| 网络 | 主路径：`api.deepseek.com`；可选多提供商测试时需对应端点（如 `openrouter.ai`） |
 | 构建环境 | PowerShell 5.1+ / 7.x；Python 3.11+；Rust toolchain（`cargo`） |
 | 代码仓库 | 完整的 hermesdesk repo（含 `hermes/` submodule） |
 
@@ -109,13 +109,13 @@ def test_expired_api_key_friendly_error(gateway):
 
 ---
 
-### TC-AB-004 [P1] 模型切换 `/model` 命令
+### TC-AB-004 [P1] 模型切换 `/model` 命令（**可选**：需单独配置 OpenRouter 等第二提供商）
 
 | 属性 | 内容 |
 |------|------|
-| **Given** | 当前模型为 DeepSeek v4 Flash；已配置 OpenRouter |
+| **Given** | 主对话为 **DeepSeek**；且已额外配置 **OpenRouter**（或其它网关支持 `openrouter/...` slug） |
 | **When** | 在 Telegram 群聊中发送 `/model openrouter/gpt-4o`（Owner 用户） |
-| **Then** | 网关回复 `"Model switched to openrouter/gpt-4o"`；新创建的会话使用新模型；已有会话不受影响 |
+| **Then** | 网关回复确认切换；新会话使用 `openrouter/gpt-4o`；已有会话不受影响 |
 
 **手工执行步骤：**
 1. 确认发送者为 Owner（在 `GATEWAY_OWNER_IDS` 中）
@@ -266,7 +266,7 @@ def test_expired_api_key_friendly_error(gateway):
 ```
 [待填写: DeepSeek API Key（有效）]       = ________________
 [待填写: DeepSeek API Key（已过期）]      = ________________
-[待填写: OpenRouter API Key]             = ________________
+[待填写: OpenRouter API Key（可选，用于 TC-AB-004）] = ________________
 [待填写: 自定义 Provider Base URL]        = ________________
 [待填写: 自定义 Provider Model Name]      = ________________
 [待填写: 自定义 Provider API Key]         = ________________
@@ -333,7 +333,7 @@ class TestBuild:
 | TC-AB-001 | ✓ PASS | DeepSeek v4 Flash 6.5s 正常回复，46 completion tokens，无 400 错误 |
 | TC-AB-002 | ✓ PASS | tool-calls 流程无 `reasoning_content missing` 或 KeyError，AI 正常降级回复 |
 | TC-AB-003 | ✓ PASS | 过期 Key → HTTP 401 被捕获，错误信息清晰："Authentication Fails, Your api key: ****3dv3 is invalid"，进程未崩溃 |
-| TC-AB-004 | ✗ SKIP | 未配置 OpenRouter |
+| TC-AB-004 | ✗ SKIP | 可选：未配置 OpenRouter（主路径为 DeepSeek 时可跳过） |
 | TC-AB-005 | ✗ SKIP | 无可用的自定义 Provider |
 | TC-AB-006 | ✗ SKIP | 同上 |
 | TC-AB-007 | ✓ PASS | build_bundle.ps1 成功执行（阿里云镜像） |

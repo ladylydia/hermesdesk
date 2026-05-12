@@ -15,6 +15,7 @@ pub struct SpawnConfig {
     pub workspace: PathBuf,
     pub secret_url: String,
     pub approval_url: String,
+    pub desktop_delivery_url: String,
     /// Must match Tauri `X-HermesDesk-Auth` header for shell → Hermes HTTP.
     pub desk_auth_token: String,
     /// ``GET /shell-chat/{desk_auth_token}`` on the loopback bridge — "back to shell chat" in Hermes UI.
@@ -76,6 +77,7 @@ impl Supervisor {
             )
             .env("HERMESDESK_SECRET_URL", &cfg.secret_url)
             .env("HERMESDESK_APPROVAL_URL", &cfg.approval_url)
+            .env("HERMESDESK_DESKTOP_DELIVERY_URL", &cfg.desktop_delivery_url)
             .env("HERMESDESK_BRIDGE_SECRET", &cfg.desk_auth_token)
             .env("HERMESDESK_SHELL_CHAT_URL", &cfg.shell_chat_back_url)
             .env(

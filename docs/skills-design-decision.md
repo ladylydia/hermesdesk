@@ -97,9 +97,9 @@ Install: Weekly Report Pro v1.2 (by reports-team)
 Signature: ✅ HermesDesk official
 
 This recipe will:
-  📁 Read files in HermesWork/reports/
+  📁 Read files in KabuqinaWork/reports/
   🌐 Reach api.openai.com
-  💾 Write to HermesWork/output/
+  💾 Write to KabuqinaWork/output/
   ⏱️ Run on schedule (every Monday 9:00)
 
   [Cancel]   [Install]
@@ -132,9 +132,9 @@ non-trivial to compose.
 The original "open the market to anyone" proposal would have made the
 Skills system into an effective bypass of every safety layer we built:
 
-* `workspace_jail` keeps file I/O inside `HermesWork/` — but a
+* `workspace_jail` keeps file I/O inside `KabuqinaWork/` — but a
   malicious Skill is *legitimately* allowed to read everything in
-  `HermesWork/`, including bank statements the user dropped there.
+  `KabuqinaWork/`, including bank statements the user dropped there.
 * `network_allowlist` restricts egress to known LLM hosts — but the
   payload of an LLM request is opaque to the allowlist; a malicious
   Skill can exfiltrate user data by stuffing it into a system prompt.

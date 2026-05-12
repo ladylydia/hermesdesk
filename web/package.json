@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "lint": "eslint .",
+    "test:desktop-delivery": "node src/lib/desktopDelivery.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

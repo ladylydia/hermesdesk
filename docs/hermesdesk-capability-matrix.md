@@ -12,7 +12,7 @@ This document describes **what the Windows HermesDesk shell actually allows** fo
 |------|---------------------|--------|
 | **Power user** | `settings.json` key `hermesdesk.power_user` (`"1"` / `"true"` = on) → child env **`HERMESDESK_POWER_USER=1` or `0`** | `tauri/src/paths.rs`, `tauri/src/python_supervisor.rs` |
 | **Capability catalog role** | Derived in Python by `CapabilityPolicy`: default when power user off, advanced when recipe market discovery is on, power when `HERMESDESK_POWER_USER=1` | Used by `/api/hermesdesk/capabilities` before the shell renders Skills / tools / plugins |
-| **Workspace folder** | Key `hermesdesk.workspace`; if unset, default **`%USERPROFILE%\Documents\HermesWork`** → **`HERMESDESK_WORKSPACE`** | `paths::ensure_workspace` |
+| **Workspace folder** | Key `hermesdesk.workspace`; if unset, default **`%USERPROFILE%\Documents\KabuqinaWork`** → **`HERMESDESK_WORKSPACE`** | `paths::ensure_workspace` |
 | **LLM (non-secret)** | `settings.json` → `provider` (e.g. `api_base_url`, `host`, `model`) → **`HERMESDESK_*`** env and overlay sync into `config.yaml` | `tauri/src/secrets.rs`, `python/overlays/desktop_llm_config.py` |
 | **API key** | Windows Credential Manager / keyring — **not** in `config.yaml` | `python/overlays/secret_loader.py` (and related) |
 
@@ -41,7 +41,7 @@ The overlay seeds `config.yaml` so `platform_toolsets["cli"]` matches the table 
 |----------|-------------|
 | **If `HERMESDESK_WORKSPACE` is unset** | Logs a warning and runs in a **permissive** mode (jail not enforced) — intended to avoid breaking tests or odd environments. |
 | **If set** | Wraps `builtins.open`, `os.*`, `shutil.*`, etc. Reads/writes must resolve under an **allowed root** after `realpath`. |
-| **Primary workspace root** | `HERMESDESK_WORKSPACE` (default `Documents\HermesWork` when Tauri sets it from `ensure_workspace`). |
+| **Primary workspace root** | `HERMESDESK_WORKSPACE` (default `Documents\KabuqinaWork` when Tauri sets it from `ensure_workspace`). |
 | **Extra writable roots** | `HERMESDESK_DATA_DIR`, `HERMES_HOME` (config/sessions), `%TEMP%` (caches, temp uploads). |
 | **Extra read-only roots** | Includes `HERMESDESK_BUNDLE_DIR` and Python stdlib paths so imports and bundle reads work. |
 | **Multi-folder workspaces** | `docs/safety.md` states multi-folder is **power-user-only**; enforcement is product-specific — the jail is “one primary workspace + extra roots as configured”. |

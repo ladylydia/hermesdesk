@@ -17,6 +17,7 @@ from agent.moonshot_schema import is_moonshot_model, sanitize_moonshot_tools
 from agent.prompt_builder import DEVELOPER_ROLE_MODELS
 from agent.transports.base import ProviderTransport
 from agent.transports.types import NormalizedResponse, ToolCall, Usage
+from utils import base_url_host_matches
 
 
 def _build_gemini_thinking_config(model: str, reasoning_config: dict | None) -> dict | None:
@@ -338,6 +339,29 @@ class ChatCompletionsTransport(ProviderTransport):
         is_github_models = params.get("is_github_models", False)
         provider_name = str(params.get("provider_name") or "").strip().lower()
         base_url = params.get("base_url")
+
+        # DeepSeek native API (OpenAI-compatible): top-level ``reasoning_effort``.
+        # ``supports_reasoning`` gates OpenRouter-style ``extra_body.reasoning`` only,
+        # so DeepSeek needs an explicit branch (# TC-AB-001 HermesDesk).
+        is_deepseek_native = provider_name == "deepseek" or base_url_host_matches(
+            base_url or "", "api.deepseek.com"
+        )
+        if is_deepseek_native:
+            _ds_off = False
+            if reasoning_config and isinstance(reasoning_config, dict):
+                if reasoning_config.get("enabled") is False:
+                    _ds_off = True
+                elif (reasoning_config.get("effort") or "").strip().lower() == "none":
+                    _ds_off = True
+            if not _ds_off:
+                _ds_effort = "high"
+                if reasoning_config and isinstance(reasoning_config, dict):
+                    _e = (reasoning_config.get("effort") or "").strip().lower()
+                    if _e in ("low", "medium", "high"):
+                        _ds_effort = _e
+                    elif _e == "minimal":
+                        _ds_effort = "low"
+                api_kwargs["reasoning_effort"] = _ds_effort
 
         provider_prefs = params.get("provider_preferences")
         if provider_prefs and is_openrouter:

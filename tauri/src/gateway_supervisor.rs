@@ -8,12 +8,15 @@
 //! creates ``profiles/<platform>/`` directories for every platform found in the
 //! host ``hermes-home/.env``, plus an empty ``shared/USER_PREFS.md``.
 //!
+//! Identity: host ``hermes-home/SOUL.md`` is mirrored into each platform profile
+//! at spawn time so bots share the same persona as the main desktop agent.
+//!
 //! Shared preferences: the host-only ``shared/USER_PREFS.md`` is copied into each
 //! profile as ``_host_prefs.md`` at spawn time (read-only preamble for the bot).
 
 use anyhow::{self, Context, Result};
 use serde::Serialize;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use std::sync::Arc;
@@ -668,6 +671,10 @@ impl GatewaySupervisor {
         // provider and falls back to upstream defaults (Qwen → 401).
         copy_host_config(&cfg.data_dir, &profile_dir);
 
+        // Copy the host SOUL.md into the platform profile so gateway bots
+        // share the same identity/persona as the main desktop agent.
+        copy_host_soul(&cfg.data_dir, &profile_dir)?;
+
         // Write profile-specific `.env` — only this platform's credentials.
         write_profile_dotenv(&cfg.data_dir, platform, host_keys)?;
 
@@ -928,13 +935,31 @@ impl Drop for GatewaySupervisor {
 // Profile helpers
 // ---------------------------------------------------------------------------
 
+/// Env key prefixes copied from the host ``.env`` into a platform profile.
+/// Any host key starting with one of these prefixes is included (so Settings
+/// can persist behavior keys like ``FEISHU_CONNECTION_MODE`` alongside creds).
+fn platform_env_prefixes(platform: &str) -> &'static [&'static str] {
+    match platform {
+        "telegram" => &["TELEGRAM_"],
+        "weixin" => &["WEIXIN_"],
+        "feishu" => &["FEISHU_"],
+        "qqbot" => &["QQ_", "QQBOT_"],
+        "dingtalk" => &["DINGTALK_"],
+        "wecom" => &["WECOM_"],
+        "discord" => &["DISCORD_"],
+        "slack" => &["SLACK_"],
+        "signal" => &["SIGNAL_"],
+        "email" => &["EMAIL_", "SMS_", "TWILIO_"],
+        _ => &[],
+    }
+}
+
 /// Write a platform-specific `.env` inside the profile directory.
 ///
 /// Contains:
-///   - Credentials and extras for this specific platform
-///   - LLM API keys and provider config (from the host `.env`) so the
-///     upstream gateway can authenticate with the LLM provider
-///   - GATEWAY_ALLOW_ALL_USERS=true to skip pairing on first run
+///   - Every host key matching this platform's credential keys **or** env prefixes
+///   - LLM API keys and provider config (from the host `.env`)
+///   - ``GATEWAY_ALLOW_ALL_USERS`` from host when set, otherwise ``true`` (legacy default)
 fn write_profile_dotenv(
     data_dir: &Path,
     platform: &str,
@@ -943,9 +968,9 @@ fn write_profile_dotenv(
     let profile_dir = profile_home_path(data_dir, platform);
     let dotenv_path = profile_dir.join(".env");
 
+    let mut written = HashSet::<String>::new();
     let mut content = String::new();
 
-    // 1. Platform-specific credentials + extras.
     let mut platform_keys: Vec<&str> = Vec::new();
     for &(name, creds) in PLATFORM_CREDENTIAL_KEYS {
         if name == platform {
@@ -959,24 +984,47 @@ fn write_profile_dotenv(
             break;
         }
     }
+
+    let push_kv = |k: &str, val: &str, written: &mut HashSet<String>, buf: &mut String| {
+        let ku = k.to_string();
+        if written.insert(ku.clone()) {
+            buf.push_str(&format!("{}={}\n", ku, val));
+        }
+    };
+
+    // 1. Explicit credential + legacy extra keys.
     for key in &platform_keys {
         if let Some(val) = host_keys.get(*key) {
-            content.push_str(&format!("{}={}\n", key, val));
+            push_kv(key, val, &mut written, &mut content);
         }
     }
 
-    // 2. LLM API keys and provider config — without these the gateway
-    //    child can't authenticate with the LLM provider and falls back to
-    //    upstream defaults (Alibaba Cloud Qwen) which breaks all bots.
-    //    Only suffix-match *_API_KEY, OPENAI_BASE_URL, and HERMES_* vars.
+    // 2. All host keys with this platform's prefixes (behavior + webhook + allowlists, etc.).
+    let prefixes = platform_env_prefixes(platform);
     for (key, val) in host_keys {
-        if key.ends_with("_API_KEY") || key == "OPENAI_BASE_URL" || key.starts_with("HERMES_") {
-            content.push_str(&format!("{}={}\n", key, val));
+        if prefixes.iter().any(|p| key.starts_with(*p)) {
+            push_kv(key, val, &mut written, &mut content);
         }
     }
 
-    // 3. Allow all users by default so pairing isn't required on first run.
-    content.push_str("GATEWAY_ALLOW_ALL_USERS=true\n");
+    // 3. LLM / Hermes host keys — skip keys already copied as platform vars.
+    for (key, val) in host_keys {
+        if written.contains(key) {
+            continue;
+        }
+        if key.ends_with("_API_KEY") || key == "OPENAI_BASE_URL" || key.starts_with("HERMES_") {
+            push_kv(key, val, &mut written, &mut content);
+        }
+    }
+
+    // 4. Pairing gate: inherit from host if the user set it in Settings / .env.
+    if !written.contains("GATEWAY_ALLOW_ALL_USERS") {
+        if let Some(v) = host_keys.get("GATEWAY_ALLOW_ALL_USERS") {
+            content.push_str(&format!("GATEWAY_ALLOW_ALL_USERS={}\n", v));
+        } else {
+            content.push_str("GATEWAY_ALLOW_ALL_USERS=true\n");
+        }
+    }
 
     std::fs::write(&dotenv_path, &content).context("write profile .env")?;
     Ok(())
@@ -994,6 +1042,24 @@ fn copy_host_config(data_dir: &Path, profile_dir: &Path) {
             log::warn!("[gateway_spawn] copy host config.yaml: {e}");
         }
     }
+}
+
+/// Mirror host ``hermes-home/SOUL.md`` into the profile directory.
+/// If the host identity file is missing or empty, remove any stale profile copy
+/// so the gateway does not keep an older persona after the main agent changes.
+fn copy_host_soul(data_dir: &Path, profile_dir: &Path) -> Result<()> {
+    let src = hermes_home_path(data_dir).join("SOUL.md");
+    let dst = profile_dir.join("SOUL.md");
+
+    match std::fs::read_to_string(&src) {
+        Ok(content) if !content.trim().is_empty() => {
+            std::fs::write(&dst, content).context("write profile SOUL.md")?;
+        }
+        _ => {
+            let _ = std::fs::remove_file(&dst);
+        }
+    }
+    Ok(())
 }
 
 /// Copy ``shared/USER_PREFS.md`` into the profile directory as ``_host_prefs.md``.
@@ -1151,5 +1217,58 @@ async fn forward<R: tokio::io::AsyncRead + Unpin + Send + 'static>(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    fn temp_data_dir(name: &str) -> PathBuf {
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time")
+            .as_nanos();
+        let dir = std::env::temp_dir().join(format!("hermesdesk-{name}-{nanos}"));
+        std::fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn copy_host_soul_overwrites_profile_soul() {
+        let data_dir = temp_data_dir("soul-copy");
+        let host_home = hermes_home_path(&data_dir);
+        let profile_dir = profile_home_path(&data_dir, "telegram");
+        std::fs::create_dir_all(&host_home).expect("create host home");
+        std::fs::create_dir_all(&profile_dir).expect("create profile dir");
+        std::fs::write(host_home.join("SOUL.md"), "You are Kabuqina.")
+            .expect("write host SOUL");
+        std::fs::write(profile_dir.join("SOUL.md"), "You are Hermes Agent.")
+            .expect("write stale profile SOUL");
+
+        copy_host_soul(&data_dir, &profile_dir).expect("copy host SOUL");
+
+        assert_eq!(
+            std::fs::read_to_string(profile_dir.join("SOUL.md")).expect("read profile SOUL"),
+            "You are Kabuqina."
+        );
+
+        let _ = std::fs::remove_dir_all(data_dir);
+    }
+
+    #[test]
+    fn copy_host_soul_removes_stale_profile_soul_when_host_missing() {
+        let data_dir = temp_data_dir("soul-remove");
+        let profile_dir = profile_home_path(&data_dir, "telegram");
+        std::fs::create_dir_all(&profile_dir).expect("create profile dir");
+        std::fs::write(profile_dir.join("SOUL.md"), "You are Hermes Agent.")
+            .expect("write stale profile SOUL");
+
+        copy_host_soul(&data_dir, &profile_dir).expect("sync missing host SOUL");
+
+        assert!(!profile_dir.join("SOUL.md").exists());
+
+        let _ = std::fs::remove_dir_all(data_dir);
     }
 }

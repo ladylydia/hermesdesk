@@ -81,7 +81,7 @@ export function WindowTitleBar() {
           decoding="async"
         />
         <span className="ml-2 truncate text-sm font-semibold tracking-wide text-zinc-700 dark:text-zinc-200">
-          {t("brand")}
+          {t("productName")}
         </span>
       </div>
 

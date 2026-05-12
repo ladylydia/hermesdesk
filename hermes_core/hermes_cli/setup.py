@@ -188,7 +188,7 @@ def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     print_info("  hermes config set model.base_url http://localhost:8080/v1")
     print_info("  hermes config set model.default your-model-name")
     print()
-    print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
+    print_info("Or set DEEPSEEK_API_KEY, OPENROUTER_API_KEY, or OPENAI_API_KEY in your environment.")
     print_info("Run 'hermes setup' in an interactive terminal to use the full wizard.")
     print()
 
@@ -925,10 +925,11 @@ def setup_model_provider(config: dict, *, quick: bool = False):
         print_info(f"Vision uses a separate multimodal backend. {_prov_display}")
         print_info("doesn't currently provide one Hermes can auto-use for vision,")
         print_info("so choose a backend now or skip and configure later.")
+        print_info("(DeepSeek and other text-first APIs still need a vision path here.)")
         print()
 
         _vision_choices = [
-            "OpenRouter — uses Gemini (free tier at openrouter.ai/keys)",
+            "OpenRouter → Gemini for vision (free tier at openrouter.ai/keys)",
             "OpenAI-compatible endpoint — base URL, API key, and vision model",
             "Skip for now",
         ]

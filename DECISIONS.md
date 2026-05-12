@@ -120,7 +120,7 @@ These map to existing Hermes personality files. Custom personalities are an
 
 See [docs/safety.md](docs/safety.md). Highlights:
 
-- Workspace folder: `%USERPROFILE%\Documents\HermesWork` (created on first
+- Workspace folder: `%USERPROFILE%\Documents\KabuqinaWork` (created on first
   launch). Single jail; the user can change it in Settings, but it always
   stays a single folder.
 - Shell approval: **deny by default**, prompt every time, no "always allow".

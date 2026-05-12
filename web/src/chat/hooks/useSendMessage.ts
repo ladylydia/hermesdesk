@@ -85,6 +85,13 @@ export function useSendMessage({
     setPendingAttachments((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
+  const onAddCaptureAttachment = useCallback((payload: DeskAttachmentPayload) => {
+    setPendingAttachments((prev) => {
+      if (prev.length >= 6) return prev;
+      return [...prev, payload];
+    });
+  }, []);
+
   const stopProgressPoll = useCallback(() => {
     if (progressTimerRef.current) {
       clearInterval(progressTimerRef.current);
@@ -400,6 +407,7 @@ export function useSendMessage({
     progress,
     pendingAttachments,
     onAddFiles,
+    onAddCaptureAttachment,
     onRemoveAttachment,
     onSend,
     onStopAgent,

@@ -296,6 +296,17 @@ def main() -> int:
     log = logging.getLogger("hermesdesk.entry")
     log.info("starting HermesDesk Python (pid=%d)", os.getpid())
 
+    # Mark this process as an interactive session BEFORE any Hermes import.
+    # Upstream gates two distinct behaviors on HERMES_INTERACTIVE:
+    #   1. ``cronjob_tools.check_cronjob_requirements`` — without it, the
+    #      ``cronjob`` tool is filtered out of the agent's tool list
+    #      (registry.py: check_fn returns False → continue).
+    #   2. ``approval.check_dangerous_command`` — without it, dangerous
+    #      shell commands auto-approve and never reach our Tauri modal.
+    # The HermesDesk /chat surface IS interactive (a real human at the
+    # keyboard sees and responds to dialogs), so this is correct.
+    os.environ.setdefault("HERMES_INTERACTIVE", "1")
+
     _wire_sys_path()
     _verify_bundle_deps(log)
     hermes_home = _redirect_hermes_home()
@@ -354,7 +365,7 @@ def main() -> int:
         log.exception("failed to import hermes_cli.web_server; aborting")
         return 3
 
-    # Main agent must know about HermesDesk power-user mode (terminal/browser/code gated off by default).
+    # Main agent must know about Kabuqina power-user mode (terminal/browser/code gated off by default).
     try:
         try:
             from overlays.desk_system_prompt import install as _desk_system_prompt_install
@@ -367,6 +378,56 @@ def main() -> int:
         _desk_system_prompt_install()
     except Exception as e:
         log.warning("desk_system_prompt install: %s", e)
+
+    # 2b. Re-run approval bridge install now that `hermes/` is on sys.path.
+    #     The first install (overlay #7) ran before _wire_sys_path(), so
+    #     send_message_tool / cronjob_tools were not importable yet.
+    #     This second call wraps the messaging + cron tool handlers with
+    #     Tauri approval dialogs.
+    try:
+        from overlays import approval_bridge as _ab
+    except ImportError:
+        _ab = None
+    if _ab is not None:
+        _ab.install()
+        log.info("approval bridge re-installed (post sys.path)")
+
+    # 2b'. Same story for cron desktop delivery: cron.scheduler only becomes
+    #      importable after _wire_sys_path(), so the first install attempt
+    #      from apply_all() is a no-op. Re-run here.
+    try:
+        from overlays import cron_desktop_delivery as _cdd
+    except ImportError:
+        _cdd = None
+    if _cdd is not None:
+        _cdd.install()
+        log.info("cron desktop-delivery overlay re-installed (post sys.path)")
+
+    # 2b''. Same story for retain-completed (one-shot job history).
+    try:
+        from overlays import cron_retain_completed as _crc
+    except ImportError:
+        _crc = None
+    if _crc is not None:
+        _crc.install()
+        log.info("cron retain-completed overlay re-installed (post sys.path)")
+
+    # 2c. Register "desktop" as a virtual platform so upstream cron delivery
+    #     can resolve it (Platform._missing_ → platform_registry).
+    try:
+        from gateway.platform_registry import platform_registry, PlatformEntry
+
+        _desktop_entry = PlatformEntry(
+            name="desktop",
+            label="Desktop (local)",
+            adapter_factory=lambda config: None,  # delivery uses _DesktopDeliveryAdapter in cron runner
+            check_fn=lambda: True,
+            emoji="🖥️",
+        )
+        platform_registry.register(_desktop_entry)
+        log.info("desktop platform registered in platform_registry")
+    except Exception as e:
+        log.warning("failed to register desktop platform: %s", e)
 
     # Mirror SPA session token for the Tauri shell (reads same path as ``paths::ensure_data_dir``).
     # web_server also writes this on import; we repeat here so an older bundled hermes without
@@ -386,6 +447,17 @@ def main() -> int:
     port = _free_port()
     _write_handshake(port)
     log.info("bound port %d, handshake written", port)
+
+    # 3b. Start the cron scheduler ticker in a daemon thread so scheduled
+    #     jobs fire even without the gateway process.
+    #     The ticker waits 60 s before its first tick (web server startup).
+    try:
+        from cron_scheduler_runner import CronSchedulerRunner
+
+        _cron_runner = CronSchedulerRunner(interval=60)
+        _cron_runner.start()
+    except Exception:
+        log.exception("failed to start cron ticker (scheduled tasks unavailable)")
 
     # Upstream API (hermes >= 0.10): hermes_cli.web_server.start_server(host, port, ...)
     runner = (

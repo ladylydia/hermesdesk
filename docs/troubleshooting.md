@@ -256,7 +256,7 @@ should re-confirm every dangerous command).
 **Root cause**
 
 Hermes defaults `HERMES_HOME` to `~/.hermes`. Our workspace jail
-correctly blocks writes outside `%USERPROFILE%\Documents\HermesWork`,
+correctly blocks writes outside `%USERPROFILE%\Documents\KabuqinaWork`,
 which excludes `~/.hermes`.
 
 **Fix** — two-part:
