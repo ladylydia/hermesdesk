@@ -45,6 +45,9 @@ Thumbs.db
 audit-output.json
 windows-port-report.txt
 
+# Local brainstorming/mockup companion files
+.superpowers/
+
 # Windows reserved name accident
 tauri/nul
 
