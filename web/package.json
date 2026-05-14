@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "test:desktop-delivery": "node src/lib/desktopDelivery.test.mjs",
     "test:chat-ux": "node src/chat/chatUx.test.mjs",
+    "test:companion-ux": "node src/companion/companionUx.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

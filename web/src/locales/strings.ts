@@ -18,6 +18,9 @@ export const MESSAGES = {
     },
     companion: {
       show: "显示小娜悬浮窗",
+      minimize: "缩小悬浮窗",
+      expand: "展开悬浮窗",
+      idleShort: "待机中",
     },
     splash: {
       waking: "正在唤醒…",
@@ -759,6 +762,9 @@ export const MESSAGES = {
     },
     companion: {
       show: "Show Nana companion",
+      minimize: "Shrink companion",
+      expand: "Expand companion",
+      idleShort: "Here",
     },
     splash: {
       waking: "Waking your assistant…",

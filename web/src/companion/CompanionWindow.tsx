@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { LogicalSize } from "@tauri-apps/api/dpi";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Bell, MessageCircle, Minus, X } from "lucide-react";
@@ -8,10 +9,12 @@ import { useI18n } from "../lib/i18n";
 import { cn } from "../lib/cn";
 
 const EVENT_NAME = "desktop-delivery";
+type CompanionMode = "expanded" | "compact";
 
 export function CompanionWindow() {
   const { t, locale } = useI18n();
   const [notice, setNotice] = useState<DesktopDeliveryNotice | null>(null);
+  const [mode, setMode] = useState<CompanionMode>("expanded");
   const sequenceRef = useRef(0);
 
   useEffect(() => {
@@ -40,6 +43,28 @@ export function CompanionWindow() {
     void invoke("cmd_focus_main_window");
   };
 
+  const setCompanionMode = async (next: CompanionMode) => {
+    try {
+      await invoke("cmd_set_companion_mode", { mode: next });
+    } catch (error) {
+      console.error("cmd_set_companion_mode failed:", error);
+      try {
+        await getCurrentWindow().setSize(
+          next === "compact"
+            ? new LogicalSize(120, 48)
+            : new LogicalSize(320, 160),
+        );
+      } catch (fallbackError) {
+        console.error("companion setSize fallback failed:", fallbackError);
+      }
+    }
+    if (next === "compact") {
+      setMode("compact");
+    } else {
+      setMode("expanded");
+    }
+  };
+
   const startDrag = (event: React.MouseEvent) => {
     if (event.button !== 0) {
       return;
@@ -48,6 +73,30 @@ export function CompanionWindow() {
       console.error("companion startDragging failed:", error);
     });
   };
+
+  if (mode === "compact") {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "flex h-screen w-screen cursor-move select-none items-center gap-2 overflow-hidden rounded-3xl border border-white/50 bg-white/95 px-2 text-left text-zinc-800 shadow-lg shadow-zinc-950/10 backdrop-blur",
+          "dark:border-zinc-700/60 dark:bg-zinc-950/95 dark:text-zinc-100",
+        )}
+        onClick={() => void setCompanionMode("expanded")}
+        onMouseDown={startDrag}
+        aria-label={t("companion.expand")}
+        title={t("companion.expand")}
+        data-tauri-drag-region
+      >
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+          <img src="/kabuqina_na_blue_48.png" alt="" className="h-5 w-5" />
+        </span>
+        <span className="min-w-0 truncate text-xs font-semibold">
+          {locale === "zh" ? t("companion.idleShort") : "Nana"}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div
@@ -85,11 +134,11 @@ export function CompanionWindow() {
           </button>
           <button
             type="button"
-            onClick={() => setNotice(null)}
+            onClick={() => void setCompanionMode("compact")}
             onMouseDown={(event) => event.stopPropagation()}
             className="flex h-6 w-6 cursor-default items-center justify-center rounded-md text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-            aria-label={locale === "zh" ? "稍后再看" : "Later"}
-            title={locale === "zh" ? "稍后再看" : "Later"}
+            aria-label={t("companion.minimize")}
+            title={t("companion.minimize")}
           >
             <Minus className="h-3.5 w-3.5" aria-hidden />
           </button>
