@@ -14,6 +14,7 @@ import builtins
 import json
 import os
 import sys
+import time
 import traceback
 from pathlib import Path
 
@@ -48,6 +49,34 @@ def _real_print(*args, **kwargs):
     _ORIGINAL_PRINT(*args, **kwargs)
 
 
+def _create_bind_task_with_retry(
+    create_bind_task,
+    *,
+    write_progress=_write_progress,
+    sleep=time.sleep,
+    delays=(1.0, 2.0, 4.0, 6.0),
+):
+    """Create a QQ bind task, tolerating short startup/network transients."""
+    total_attempts = len(delays) + 1
+    last_error = None
+    for attempt in range(total_attempts):
+        write_progress(
+            {
+                "phase": "connecting",
+                "qr_url": None,
+                "message": f"正在连接 QQ 服务，请稍等（第 {attempt + 1}/{total_attempts} 次）...",
+            }
+        )
+        try:
+            return create_bind_task()
+        except Exception as exc:
+            last_error = exc
+            if attempt >= len(delays):
+                break
+            sleep(delays[attempt])
+    raise last_error
+
+
 def main() -> int:
     _wire_sys_path()
     data_dir = _data_dir()
@@ -79,12 +108,10 @@ def main() -> int:
     builtins.print = _patched_print  # type: ignore[assignment]
 
     try:
-        import asyncio
-
         from env_validate import validate_env_value
         from gateway.platforms.qqbot.onboard import (
-            create_bind_task,
-            poll_bind_result,
+            _create_bind_task,
+            _poll_bind_result,
             build_connect_url,
         )
         from gateway.platforms.qqbot.onboard import BindStatus
@@ -93,9 +120,8 @@ def main() -> int:
         from hermes_cli.config import get_env_value, remove_env_value, save_env_value
 
         # 1. Create bind task → get task_id and AES key
-        _write_progress({"phase": "connecting", "qr_url": None, "message": "Creating bind task..."})
         try:
-            task_id, aes_key = asyncio.run(create_bind_task())
+            task_id, aes_key = _create_bind_task_with_retry(_create_bind_task)
         except Exception as e:
             _write_result({"ok": False, "error": f"create_bind_task failed: {e}"})
             _write_progress({"phase": "error", "qr_url": None, "message": str(e)})
@@ -112,9 +138,7 @@ def main() -> int:
         last_status = None
         while elapsed < deadline:
             try:
-                status, bot_appid, encrypted_secret, user_openid = asyncio.run(
-                    poll_bind_result(task_id)
-                )
+                status, bot_appid, encrypted_secret, user_openid = _poll_bind_result(task_id)
             except Exception as e:
                 _write_result({"ok": False, "error": f"poll failed: {e}"})
                 _write_progress({"phase": "error", "qr_url": qr_url, "message": str(e)})
@@ -171,7 +195,7 @@ def main() -> int:
             if status == BindStatus.PENDING:
                 print(".", end="", flush=True)
 
-            asyncio.run(asyncio.sleep(ONBOARD_POLL_INTERVAL))
+            time.sleep(ONBOARD_POLL_INTERVAL)
             elapsed += ONBOARD_POLL_INTERVAL
 
         _write_result({"ok": False, "error": "Scan timed out"})

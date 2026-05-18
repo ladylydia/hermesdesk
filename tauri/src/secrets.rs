@@ -150,7 +150,7 @@ pub fn provider_api_key_env(provider: &str) -> String {
     match provider {
         "openrouter" => "OPENROUTER_API_KEY",
         "openai" => "OPENAI_API_KEY",
-        "deepseek" => "OPENAI_API_KEY",
+        "deepseek" => "DEEPSEEK_API_KEY",
         "custom" => "OPENAI_API_KEY",
         "anthropic" => "ANTHROPIC_API_KEY",
         "nous" => "NOUS_PORTAL_API_KEY",
@@ -180,10 +180,12 @@ pub fn provider_api_key_env(provider: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{validate_provider_config_for_save, provider_api_key_env, ProviderConfig};
+    use super::{provider_api_key_env, validate_provider_config_for_save, ProviderConfig};
 
     #[test]
     fn provider_api_key_env_covers_native_hermes_providers() {
+        assert_eq!(provider_api_key_env("openai"), "OPENAI_API_KEY");
+        assert_eq!(provider_api_key_env("deepseek"), "DEEPSEEK_API_KEY");
         assert_eq!(provider_api_key_env("alibaba"), "DASHSCOPE_API_KEY");
         assert_eq!(provider_api_key_env("zai"), "GLM_API_KEY");
         assert_eq!(provider_api_key_env("kimi-coding"), "KIMI_API_KEY");
@@ -421,6 +423,7 @@ pub async fn cmd_save_secret(
         .map_err(|e| e.to_string())?;
     write_provider_cfg(&app, &cfg).map_err(|e| e.to_string())?;
     let _ = write_bool_setting(&app, VENDOR_LLM_DISABLED, false);
+    crate::respawn_embedded_hermes_python(app).await?;
     Ok(())
 }
 

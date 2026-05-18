@@ -1049,6 +1049,101 @@ def _desk_build_user_message(
     return user_content, persist
 
 
+_DESK_COMMAND_DESCRIPTION_ZH: Dict[str, str] = {
+    "new": "开始一个新会话",
+    "retry": "重试上一条消息",
+    "undo": "撤回上一轮对话",
+    "title": "设置当前会话标题",
+    "branch": "从当前会话分支继续",
+    "compress": "压缩当前上下文",
+    "rollback": "查看或恢复文件检查点",
+    "stop": "停止正在运行的后台任务",
+    "background": "把一个任务放到后台执行",
+    "agents": "查看正在运行的任务",
+    "queue": "把消息排队到下一轮",
+    "steer": "在下一次工具调用后补充指令",
+    "status": "查看当前会话状态",
+    "profile": "查看当前配置档案",
+    "resume": "继续之前的会话",
+    "model": "切换本会话模型",
+    "personality": "切换小娜的回复风格",
+    "yolo": "切换高风险命令审批模式",
+    "reasoning": "管理推理强度显示",
+    "fast": "切换普通/快速模式",
+    "voice": "切换语音相关设置",
+    "curator": "管理后台技能维护",
+    "reload-mcp": "重新加载 MCP 服务",
+    "reload-skills": "重新扫描技能",
+    "commands": "查看完整指令列表",
+    "help": "显示小娜指令",
+    "usage": "查看本会话用量",
+    "insights": "查看使用统计",
+    "debug": "生成调试报告",
+}
+
+
+def _desk_command_lines() -> List[str]:
+    from hermes_cli.commands import COMMAND_REGISTRY
+
+    lines: List[str] = []
+    for cmd in COMMAND_REGISTRY:
+        if cmd.cli_only or (cmd.gateway_only and cmd.name != "commands"):
+            continue
+        args = f" {cmd.args_hint}" if cmd.args_hint else ""
+        desc = _DESK_COMMAND_DESCRIPTION_ZH.get(cmd.name, cmd.description)
+        alias_parts = [
+            f"`/{a}`"
+            for a in cmd.aliases
+            if a.replace("-", "_") != cmd.name.replace("-", "_")
+        ]
+        alias_note = f"（别名：{', '.join(alias_parts)}）" if alias_parts else ""
+        lines.append(f"`/{cmd.name}{args}` - {desc}{alias_note}")
+    return lines
+
+
+def _desk_persist_slash_response(session_id: str, command_text: str, response_text: str) -> None:
+    try:
+        from hermes_state import SessionDB
+
+        db = SessionDB()
+        try:
+            db.create_session(session_id=session_id, source="desktop", model="desk-command")
+            db.append_message(session_id, role="user", content=command_text)
+            db.append_message(session_id, role="assistant", content=response_text)
+        finally:
+            db.close()
+    except Exception:
+        _log.debug("desk slash: failed to persist command response", exc_info=True)
+
+
+def _desk_slash_response(message: str, session_id: str) -> Optional[Dict[str, Any]]:
+    text = (message or "").strip()
+    if not text.startswith("/"):
+        return None
+    parts = text.split()
+    command = parts[0].lstrip("/").lower()
+    if command not in ("help", "commands"):
+        return None
+
+    lines = ["📖 **小娜指令**", "", *_desk_command_lines()]
+    if command == "commands":
+        lines.insert(2, "下面是主聊天里适合学生使用的常用指令：")
+        lines.insert(3, "")
+    response_text = "\n".join(lines).strip()
+    _desk_persist_slash_response(session_id, text, response_text)
+    return {
+        "ok": True,
+        "proto": False,
+        "session_id": session_id,
+        "final_response": response_text,
+        "received_chars": max(1, len(text)),
+        "preview": response_text[:500] + ("..." if len(response_text) > 500 else ""),
+        "prompt_tokens": 0,
+        "completion_tokens": 0,
+        "model": "",
+    }
+
+
 def _desk_chat_build_agent(session_id: str, db: Any) -> Any:
     """Construct AIAgent using the same config + credentials as the CLI."""
     from run_agent import AIAgent
@@ -1299,6 +1394,20 @@ def _desk_sse(payload: Dict[str, Any]) -> str:
     return f"data: {json.dumps(payload, ensure_ascii=False, separators=(',', ':'))}\n\n"
 
 
+def _desk_slash_streaming_response(payload: Dict[str, Any]) -> StreamingResponse:
+    async def event_generator():
+        session_id = payload.get("session_id")
+        yield _desk_sse({"type": "start", "session_id": session_id})
+        yield _desk_sse({"type": "final", **payload})
+        yield _desk_sse({"type": "done", "session_id": session_id})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.post("/api/desk/chat-stream")
 async def desk_chat_stream(request: Request):
     """HermesDesk: stream a real AIAgent turn as SSE events."""
@@ -1318,6 +1427,10 @@ async def desk_chat_stream(request: Request):
         )
     user_payload, persist_um = built
     session_id = (body.get("session_id") or "").strip() or str(uuid.uuid4())
+    if not atts:
+        slash_payload = _desk_slash_response(message, session_id)
+        if slash_payload is not None:
+            return _desk_slash_streaming_response(slash_payload)
 
     from hermes_state import SessionDB
 
@@ -1487,6 +1600,10 @@ async def desk_chat_proto(request: Request):
     user_payload, persist_um = built
 
     session_id = (body.get("session_id") or "").strip() or str(uuid.uuid4())
+    if not atts:
+        slash_payload = _desk_slash_response(message, session_id)
+        if slash_payload is not None:
+            return JSONResponse(slash_payload)
 
     from hermes_state import SessionDB
 

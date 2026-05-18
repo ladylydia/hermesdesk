@@ -758,6 +758,7 @@ impl GatewaySupervisor {
             // Strip any stray API keys inherited from the user shell or
             // parent process, then inject the correct one from our vault.
             .env_remove("OPENAI_API_KEY")
+            .env_remove("DEEPSEEK_API_KEY")
             .env_remove("ANTHROPIC_API_KEY")
             .env_remove("OPENROUTER_API_KEY")
             .env_remove("NOUS_PORTAL_API_KEY")

@@ -125,6 +125,27 @@ class TestWebServerEndpoints:
         assert "hermes_home" in data
         assert "active_sessions" in data
 
+    def test_desk_slash_help_returns_product_help_without_model(self):
+        import hermes_cli.web_server as web_server
+
+        result = web_server._desk_slash_response("/help", "desk-help-test")
+
+        assert result is not None
+        assert result["ok"] is True
+        assert result["session_id"] == "desk-help-test"
+        assert result["model"] == ""
+        assert "📖 **小娜指令**" in result["final_response"]
+        assert "/help" in result["final_response"]
+        assert "/commands" in result["final_response"]
+        assert "/new" in result["final_response"]
+        assert "/config" not in result["final_response"]
+        assert "/sethome" not in result["final_response"]
+
+    def test_desk_slash_unknown_falls_through_to_agent(self):
+        import hermes_cli.web_server as web_server
+
+        assert web_server._desk_slash_response("/not-a-real-command", "desk-help-test") is None
+
     def test_get_status_filters_unconfigured_gateway_platforms(self, monkeypatch):
         import gateway.config as gateway_config
         import hermes_cli.web_server as web_server

@@ -13,7 +13,7 @@ import urllib.request
 log = logging.getLogger("hermesdesk.secret")
 
 _PROVIDER_ENV: dict[str, str] = {
-    "deepseek":   "OPENAI_API_KEY",
+    "deepseek":   "DEEPSEEK_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
     "openai":     "OPENAI_API_KEY",
     "custom":     "OPENAI_API_KEY",

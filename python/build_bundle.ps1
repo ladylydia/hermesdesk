@@ -278,6 +278,34 @@ function Clear-BundleSitePackages {
 Clear-BundleSitePackages -Path $siteDir
 New-Item -ItemType Directory -Force -Path $siteDir | Out-Null
 
+function Remove-BundleGeneratedJunk {
+    param([string]$RootPath)
+
+    if (-not (Test-Path -LiteralPath $RootPath)) { return }
+
+    Write-Host "Pruning generated cache/stale files from runtime..." -ForegroundColor DarkGray
+
+    $staleDirs = Get-ChildItem -LiteralPath $RootPath -Force -Directory -Filter "*.stale_*" -ErrorAction SilentlyContinue
+    foreach ($dir in $staleDirs) {
+        Remove-Item -Recurse -Force -LiteralPath $dir.FullName -ErrorAction Stop
+    }
+
+    $pycacheDirs = Get-ChildItem -LiteralPath $RootPath -Force -Recurse -Directory -Filter "__pycache__" -ErrorAction SilentlyContinue |
+        Sort-Object FullName -Descending
+    foreach ($dir in $pycacheDirs) {
+        Remove-Item -Recurse -Force -LiteralPath $dir.FullName -ErrorAction Stop
+    }
+
+    $generatedFiles = Get-ChildItem -LiteralPath $RootPath -Force -Recurse -File -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Extension -iin @(".pyc", ".pyo", ".pdb") -or
+            $_.Name -like "*.pyc.*"
+        }
+    foreach ($file in $generatedFiles) {
+        Remove-Item -Force -LiteralPath $file.FullName -ErrorAction Stop
+    }
+}
+
 # ``--upgrade`` avoids "Target directory … already exists" when anything survived under
 # ``site-packages`` or pip merges wheels that touch the same top-level names.
 & $Py -m pip install `
@@ -433,6 +461,8 @@ Copy-Item -Force $ffmpegExe.FullName (Join-Path $SttBinDir "ffmpeg.exe")
 
 Write-Host "STT binaries staged at $SttBinDir" -ForegroundColor DarkGray
 
+Remove-BundleGeneratedJunk -RootPath $Dist
+
 # ------------------------------------------------------------------ 7. Bundle metadata
 $info = @{
     pythonVersion  = $PythonVersion
@@ -454,6 +484,7 @@ if ($Verify) {
     $env:HERMESDESK_WORKSPACE  = (Join-Path $env:TEMP "hermesdesk-smoke\workspace")
     $env:HERMES_HOME           = (Join-Path $env:TEMP "hermesdesk-smoke\hermes-home")
     $env:HERMESDESK_OVERLAY_LENIENT = "0"
+    $env:PYTHONDONTWRITEBYTECODE = "1"
     New-Item -ItemType Directory -Force -Path $env:HERMESDESK_WORKSPACE, $env:HERMES_HOME | Out-Null
     & $Py -c @"
 import sys

@@ -103,8 +103,9 @@ impl Supervisor {
             .env("PYTHONIOENCODING", "utf-8")
             .env("PYTHONUTF8", "1")
             .env("PYTHONUNBUFFERED", "1")
-            // Don't inherit any stale OPENAI/ANTHROPIC keys from the user shell
+            // Don't inherit any stale provider keys from the user shell
             .env_remove("OPENAI_API_KEY")
+            .env_remove("DEEPSEEK_API_KEY")
             .env_remove("ANTHROPIC_API_KEY")
             .env_remove("OPENROUTER_API_KEY")
             // CRITICAL: strip every proxy var the user's shell may have set.
